@@ -60,10 +60,11 @@ sub _run_webpack {
   my $config_file = path($config->{config_file} || $app->home->rel_file('webpack.config.js'));
 
   local %ENV = %ENV;
-  $ENV{NODE_ENV} ||= $app->mode;
-  $ENV{WEBPACK_ASSETS_DIR} = $config->{assets_dir} || $app->home->rel_file('assets');
-  $ENV{WEBPACK_OUT_DIR} = $config->{out_dir} || (grep {-w} @{$app->static->paths})[0] // '/read/only';
-  $ENV{WEBPACK_SOURCE_MAPS} = $config->{source_maps} // 1;
+  $ENV{NODE_ENV}            ||= $app->mode;
+  $ENV{WEBPACK_ASSETS_DIR}  ||= $config->{assets_dir} || $app->home->rel_file('assets');
+  $ENV{WEBPACK_OUT_DIR}     ||= $config->{out_dir};
+  $ENV{WEBPACK_OUT_DIR}     ||= path(+(grep {-w} @{$app->static->paths})[0] || '/read/only', 'asset');
+  $ENV{WEBPACK_SOURCE_MAPS} ||= $config->{source_maps} // 1;
   $ENV{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$config->{process}};
 
   $self->_generate($config_file->dirname, 'package.json');
@@ -71,8 +72,11 @@ sub _run_webpack {
   $self->_generate_entries($ENV{WEBPACK_ASSETS_DIR});
   $self->_install_node_deps($config_file->dirname);
 
+  unless (-e $ENV{WEBPACK_OUT_DIR}) {
+    path($ENV{WEBPACK_OUT_DIR})->make_path;
+  }
   unless (-w $ENV{WEBPACK_OUT_DIR}) {
-    warn "[Webpack] Cannot write to $ENV{WEBPACK_OUT_DIR}\n" if $ENV{MOJO_WEBPACK_VERBOSE};
+    warn "[Webpack] Cannot write to $ENV{WEBPACK_OUT_DIR}\n" if $ENV{MOJO_WEBPACK_DEBUG};
     return;
   }
 
@@ -83,7 +87,7 @@ sub _run_webpack {
   push @cmd, '--hot', '--watch' if $config->{hot};
   push @cmd, '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
 
-  warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_VERBOSE};
+  warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};
   system @cmd;
 }
 
