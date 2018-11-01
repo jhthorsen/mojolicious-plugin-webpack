@@ -16,4 +16,7 @@
 /pm_to_blib
 example/public/asset/
 node_modules
-package-lock.json
+example/*js
+example/*json
+example/assets/webpack-entries.js
+example/public

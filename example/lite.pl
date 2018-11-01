@@ -4,7 +4,7 @@ use Mojolicious::Lite;
 use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
-plugin 'Webpack';
+plugin Webpack => {process => [qw(js css sass)]};
 get '/' => 'index';
 app->start;
 
