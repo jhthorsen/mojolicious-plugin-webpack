@@ -3,14 +3,23 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use Mojo::ByteStream 'b';
 use Mojo::File 'path';
+use Mojo::IOLoop::Subprocess;
 
 our $VERSION = '0.01';
+
+has daemon => undef;
 
 sub register {
   my ($self, $app, $config) = @_;
 
-  $self->_run_webpack($app, $config) if $ENV{MOJO_WEBPACK_BUILD} // 1;
-  $app->helper(asset => sub { return b '<script>/* $c->asset("TODO") */</script>' });
+  $self->_run_webpack($app, $config) if $ENV{MOJO_WEBPACK_ARGS} // 1;
+  $app->helper(asset => sub { _asset($self, @_) });
+}
+
+sub _asset {
+  my ($self, $c, @args) = @_;
+  return $self unless @args;
+  return b '<script>/* $c->asset("TODO") */</script>';
 }
 
 sub _generate {
@@ -59,24 +68,24 @@ sub _run_webpack {
   my ($self, $app, $config) = @_;
   my $config_file = path($config->{config_file} || $app->home->rel_file('webpack.config.js'));
 
-  local %ENV = %ENV;
-  $ENV{NODE_ENV}            ||= $app->mode;
-  $ENV{WEBPACK_ASSETS_DIR}  ||= $config->{assets_dir} || $app->home->rel_file('assets');
-  $ENV{WEBPACK_OUT_DIR}     ||= $config->{out_dir};
-  $ENV{WEBPACK_OUT_DIR}     ||= path(+(grep {-w} @{$app->static->paths})[0] || '/read/only', 'asset');
-  $ENV{WEBPACK_SOURCE_MAPS} ||= $config->{source_maps} // 1;
-  $ENV{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$config->{process}};
+  my %env = %ENV;
+  $env{NODE_ENV}            ||= $app->mode;
+  $env{WEBPACK_ASSETS_DIR}  ||= $config->{assets_dir} || $app->home->rel_file('assets');
+  $env{WEBPACK_OUT_DIR}     ||= $config->{out_dir};
+  $env{WEBPACK_OUT_DIR}     ||= path(+(grep {-w} @{$app->static->paths})[0] || '/read/only', 'asset');
+  $env{WEBPACK_SOURCE_MAPS} ||= $config->{source_maps} // 1;
+  $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$config->{process}};
 
   $self->_generate($config_file->dirname, 'package.json');
   $self->_generate($config_file->dirname, 'webpack.config.js');
-  $self->_generate_entries($ENV{WEBPACK_ASSETS_DIR});
+  $self->_generate_entries($env{WEBPACK_ASSETS_DIR});
   $self->_install_node_deps($config_file->dirname);
 
-  unless (-e $ENV{WEBPACK_OUT_DIR}) {
-    path($ENV{WEBPACK_OUT_DIR})->make_path;
+  unless (-e $env{WEBPACK_OUT_DIR}) {
+    path($env{WEBPACK_OUT_DIR})->make_path;
   }
-  unless (-w $ENV{WEBPACK_OUT_DIR}) {
-    warn "[Webpack] Cannot write to $ENV{WEBPACK_OUT_DIR}\n" if $ENV{MOJO_WEBPACK_DEBUG};
+  unless (-w $env{WEBPACK_OUT_DIR}) {
+    warn "[Webpack] Cannot write to $env{WEBPACK_OUT_DIR}\n" if $ENV{MOJO_WEBPACK_DEBUG};
     return;
   }
 
@@ -84,11 +93,14 @@ sub _run_webpack {
   push @cmd, '--config' => $config_file->to_string;
   push @cmd, '--env'    => $config->{env} // $app->mode;
   push @cmd, '--cache', '--progress' if ($config->{env} || $app->mode) eq 'development';
-  push @cmd, '--hot', '--watch' if $config->{hot};
   push @cmd, '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
+  push @cmd, split /\s+/, +($ENV{MOJO_WEBPACK_ARGS} || '');
 
   warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};
-  system @cmd;
+  map { warn "[Webpack] $_=$env{$_}\n" } grep {/^WEBPACK_/} sort keys %env if $ENV{MOJO_WEBPACK_DEBUG};
+  local %ENV = %env;
+  return system @cmd unless grep {/--watch/} @cmd;
+  $self->daemon(Mojo::IOLoop::Subprocess->new->run(sub { %ENV = %env; system @cmd }, sub { }));
 }
 
 1;
