@@ -1,41 +1,24 @@
-use Mojo::Base -strict;
-use Mojo::File 'path';
-use Test::Mojo;
-use Test::More;
+use lib '.';
+use t::Helper;
 
-plan skip_all => 'TEST_NODE_INSTALL=1' unless $ENV{TEST_NODE_INSTALL};
+plan skip_all => 'TEST_NODE_MODULES=1' unless $ENV{TEST_NODE_MODULES};
 
-my $olddir = path;
-my $workdir = path(path(__FILE__)->dirname, 'install-deps');
-mkdir $workdir;
-plan skip_all => "$workdir does not exist" unless -d $workdir;
-chdir $workdir or die "chdir $workdir: $!";
-$workdir = path;
-
-$ENV{MOJO_WEBPACK_ARGS} = '';
-use Mojolicious::Lite;
-plugin Webpack => {dependencies => {core => ['underscore'], js => []}};
-
-my $t     = Test::Mojo->new;
+my $cwd   = t::Helper->cleanup_after->cwd('install-deps');
+my $t     = t::Helper->t(args => '', dependencies => {core => ['underscore'], js => []});
 my $asset = $t->app->asset;
 
-is $asset->_generate($t->app, $workdir, 'package.json'), 'generated', 'generated package.json';
+is $asset->_generate($t->app, $cwd, 'package.json'), 'generated', 'generated package.json';
 
 $asset->dependencies->{core} = ['underscore'];
 $asset->dependencies->{js}   = [];
-is $asset->_install_node_deps($workdir), 1, 'first run';
-is $asset->_install_node_deps($workdir), 0, 'second run';
+is $asset->_install_node_deps($cwd), 1, 'first run';
+is $asset->_install_node_deps($cwd), 0, 'second run';
 
-plugin Webpack => {process => [qw(js css)], dependencies => {core => ['underscore'], js => []}};
+$t = t::Helper->t(args => '', dependencies => {core => ['underscore'], js => []}, process => [qw(js css)]);
 $asset = $t->app->asset;
 
 $asset->{process} = [qw(js css)];
-is $asset->_install_node_deps($workdir), 3, 'more deps for css';
-is $asset->_install_node_deps($workdir), 0, 'all done';
+is $asset->_install_node_deps($cwd), 3, 'more deps for css';
+is $asset->_install_node_deps($cwd), 0, 'all done';
 
 done_testing;
-
-END {
-  chdir $olddir if $olddir;
-  $workdir->remove_tree if $workdir;
-}
