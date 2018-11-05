@@ -1,6 +1,7 @@
 package Mojolicious::Plugin::Webpack;
 use Mojo::Base 'Mojolicious::Plugin';
 
+use Carp 'confess';
 use Mojo::ByteStream 'b';
 use Mojo::File 'path';
 use Mojo::IOLoop::Subprocess;
@@ -21,29 +22,31 @@ has dependencies => sub {
   };
 };
 
-sub env     { $_[0]->{env} }
 sub out_dir { $_[0]->{out_dir} }
 sub process { [@{$_[0]->{process} || []}] }
+sub route   { $_[0]->{route} }
 
 sub register {
   my ($self, $app, $config) = @_;
+  my $helper = $config->{helper} || 'asset';
+
+  # TODO: Not sure if this should be global or not
+  $ENV{NODE_ENV} ||= $app->mode eq 'development' ? 'development' : 'production';
+
+  $self->{$_} = $config->{$_}      for qw(process rel_out_dir);
+  $self->{$_} = $config->{$_} // 1 for qw(auto_cleanup source_maps);
+  $self->{process}     ||= ['js'];
+  $self->{rel_out_dir} ||= 'asset';
+  $self->{route}       ||= $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
 
   $self->{$_} = path $config->{$_} for grep { $config->{$_} } qw(assets_dir out_dir);
   $self->{assets_dir} ||= path $app->home->rel_file('assets');
-  $self->{out_dir} ||= path $app->static->paths->[0], 'asset';
-  $self->{env}         = $config->{env} // $app->mode;
-  $self->{process}     = $config->{process} || ['js'];
-  $self->{source_maps} = $config->{source_maps} // 1;
+  $self->{out_dir} ||= path $app->static->paths->[0], $self->{rel_out_dir};
 
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
   $self->_run_webpack($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
-  $app->helper(asset => sub { _asset($self, @_) });
-}
-
-sub _asset {
-  my ($self, $c, @args) = @_;
-  return $self unless @args;
-  return b '<script>/* $c->asset("TODO") */</script>';
+  $self->_register_assets;
+  $app->helper($helper => sub { @_ == 1 ? $self : $self->_render_tag(@_) });
 }
 
 sub _generate {
@@ -71,7 +74,6 @@ sub _environment_variables {
   my $self = shift;
   my %env  = %ENV;
 
-  $env{NODE_ENV} ||= $self->env;
   $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
   $env{WEBPACK_OUT_DIR}    = $self->out_dir;
   $env{WEBPACK_SHARE_DIR}    //= $self->_share_dir;
@@ -101,6 +103,26 @@ sub _install_node_deps {
   return $n;
 }
 
+sub _render_tag {
+  my ($self, $c, $name, @args) = @_;
+  my $asset = $self->{assets}{$name} or confess "Invalid asset name $name";
+  $asset->[0]->{src} = $c->url_for('webpack.asset', {name => $asset->[1]});
+  return b $asset->[0];
+}
+
+sub _register_assets {
+  my $self = shift;
+
+  my $path_to_markup = $self->out_dir->child(sprintf 'webpack.%s.html',
+    $ENV{WEBPACK_CUSTOM_NAME} || ($ENV{NODE_ENV} ne 'production' ? 'development' : 'production'));
+  my $markup = Mojo::DOM->new($path_to_markup->slurp);
+
+  $markup->find('script')->each(sub {
+    my $tag = shift;
+    $self->{assets}{"$1.$2"} = [$tag, $tag->{src}] if $tag->{src} =~ m!(.*)\.\w+\.(js)$!i;
+  });
+}
+
 sub _run_webpack {
   my ($self, $app) = @_;
   my $config_file = $app->home->rel_file('webpack.config.js');
@@ -122,9 +144,7 @@ sub _run_webpack {
 
   my @cmd = $env->{WEBPACK_BINARY} || $app->home->rel_file('node_modules/.bin/webpack');
   push @cmd, '--config' => $config_file->to_string;
-  push @cmd, '--env'    => $self->env;
-  push @cmd, '--cache',   '--progress' if $self->env eq 'development';
-  push @cmd, '--profile', '--verbose'  if $ENV{MOJO_WEBPACK_VERBOSE};
+  push @cmd, '--progress', '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
   push @cmd, split /\s+/, +($ENV{MOJO_WEBPACK_ARGS} || '');
 
   warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};

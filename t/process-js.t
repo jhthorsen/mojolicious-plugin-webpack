@@ -6,6 +6,6 @@ plan skip_all => 'TEST_PROCESS_JS=1' unless $ENV{TEST_PROCESS_JS} or $ENV{TEST_A
 my $cwd = t::Helper->cwd;
 my $t = t::Helper->t(process => ['js']);
 
-like $t->app->asset('foo.js'), qr{src="/asset/foo\.dev\.js"}, 'asset foo.js';
+like $t->app->asset('add.js'), qr{src="/asset/add\.dev\.js"}, 'asset add.js';
 
 done_testing;

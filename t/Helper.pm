@@ -6,6 +6,7 @@ use Mojolicious;
 use Test::Mojo;
 use Test::More;
 
+$ENV{WEBPACK_AUTO_CLEANUP} = 0;
 our ($CLEANUP, $OLD_DIR, $WORK_DIR) = (0, path, path);
 
 sub t {
