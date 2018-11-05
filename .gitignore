@@ -14,9 +14,9 @@
 /META*
 /MYMETA*
 /pm_to_blib
-example/public/asset/
 node_modules
-example/*js
-example/*.json
-example/assets/webpack-custom.js
+package-lock.json
+package.json
 example/public
+example/public/asset/
+t/webpack.config.js

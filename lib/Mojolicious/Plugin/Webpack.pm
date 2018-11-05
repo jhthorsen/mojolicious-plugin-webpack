@@ -84,7 +84,7 @@ sub _environment_variables {
 
 sub _generate_custom_webpack_hook {
   my $self = shift;
-  my $file = $self->assets_dir->child('webpack-custom.js');
+  my $file = $self->assets_dir->child(sprintf 'webpack-%s.js', $ENV{WEBPACK_CUSTOM_NAME} || 'custom');
 
   return -r $file ? $file : $file->spurt(<<"HERE");
 // assetsDir = "@{[$self->assets_dir]}"

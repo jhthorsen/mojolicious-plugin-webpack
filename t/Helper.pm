@@ -14,6 +14,7 @@ sub t {
   my ($class, %config) = @_;
   my $app = Mojolicious->new;
   $ENV{MOJO_WEBPACK_ARGS} = delete $config{args} if defined $config{args};
+  $ENV{WEBPACK_CUSTOM_NAME} = path($0)->basename('.t');
   $app->plugin(Webpack => \%config);
   return Test::Mojo->new($app);
 }
@@ -22,6 +23,7 @@ sub cwd {
   my $class = shift;
   mkdir($WORK_DIR = path(path(__FILE__)->dirname, @_)->to_abs);
   plan skip_all => "Cannot change to $WORK_DIR" unless chdir $WORK_DIR;
+  $ENV{MOJO_HOME} = $WORK_DIR;
   return $WORK_DIR;
 }
 
