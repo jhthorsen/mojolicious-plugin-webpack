@@ -116,9 +116,10 @@ sub _register_assets {
     $ENV{WEBPACK_CUSTOM_NAME} || ($ENV{NODE_ENV} ne 'production' ? 'development' : 'production'));
   my $markup = Mojo::DOM->new($path_to_markup->slurp);
 
-  $markup->find('script')->each(sub {
+  $markup->find('link, script')->each(sub {
     my $tag = shift;
-    $self->{assets}{"$1.$2"} = [$tag, $tag->{src}] if $tag->{src} =~ m!(.*)\.\w+\.(js)$!i;
+    my $src = $tag->{src} || $tag->{href};
+    $self->{assets}{"$1.$2"} = [$tag, $src] if $src =~ m!(.*)\.\w+\.(css|js)$!i;
   });
 }
 
