@@ -14,7 +14,7 @@ sub daemon     { $_[0]->{daemon} }
 
 has dependencies => sub {
   return {
-    core => [qw(webpack-cli webpack webpack-md5-hash clean-webpack-plugin html-webpack-plugin)],
+    core => [qw(webpack-cli webpack webpack-md5-hash html-webpack-plugin)],
     css  => [qw(css-loader mini-css-extract-plugin optimize-css-assets-webpack-plugin)],
     js   => [qw(@babel/core @babel/preset-env babel-loader uglifyjs-webpack-plugin)],
     sass => [qw(node-sass sass-loader)],
@@ -76,9 +76,8 @@ sub _environment_variables {
 
   $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
   $env{WEBPACK_OUT_DIR}    = $self->out_dir;
-  $env{WEBPACK_SHARE_DIR}    //= $self->_share_dir;
-  $env{WEBPACK_AUTO_CLEANUP} //= $self->{auto_cleanup} // 1;
-  $env{WEBPACK_SOURCE_MAPS}  //= $self->{source_maps} // 1;
+  $env{WEBPACK_SHARE_DIR}   //= $self->_share_dir;
+  $env{WEBPACK_SOURCE_MAPS} //= $self->{source_maps} // 1;
   $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$self->process};
 
   return \%env;

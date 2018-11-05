@@ -20,12 +20,10 @@ like $env->{WEBPACK_SHARE_DIR},  qr{\bMojolicious\W+Plugin\W+Webpack\W*$}, 'WEBP
 ok !$env->{WEBPACK_RULE_FOR_CSS}, 'WEBPACK_RULE_FOR_CSS';
 
 # TODO: Not sure if these variables should be documented or not
-$ENV{WEBPACK_SHARE_DIR}    = '/what/ever';
-$ENV{WEBPACK_AUTO_CLEANUP} = '0';
-$ENV{WEBPACK_SOURCE_MAPS}  = '0';
+$ENV{WEBPACK_SHARE_DIR}   = '/what/ever';
+$ENV{WEBPACK_SOURCE_MAPS} = '0';
 $env = t::Helper->t(args => '')->app->asset->_environment_variables;
-is $env->{WEBPACK_AUTO_CLEANUP}, 0,            'WEBPACK_AUTO_CLEANUP';
-is $env->{WEBPACK_SOURCE_MAPS},  0,            'WEBPACK_SOURCE_MAPS';
-is $env->{WEBPACK_SHARE_DIR},    '/what/ever', 'WEBPACK_SHARE_DIR';
+is $env->{WEBPACK_SOURCE_MAPS}, 0,            'WEBPACK_SOURCE_MAPS';
+is $env->{WEBPACK_SHARE_DIR},   '/what/ever', 'WEBPACK_SHARE_DIR';
 
 done_testing;
