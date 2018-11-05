@@ -6,9 +6,7 @@ use Mojolicious;
 use Test::Mojo;
 use Test::More;
 
-our ($CLEANUP, $WORK_DIR);
-
-sub cleanup_after { $CLEANUP = $_[0] }
+our ($CLEANUP, $OLD_DIR, $WORK_DIR) = (0, path, path);
 
 sub t {
   my ($class, %config) = @_;
@@ -20,8 +18,9 @@ sub t {
 }
 
 sub cwd {
-  my $class = shift;
-  mkdir($WORK_DIR = path(path(__FILE__)->dirname, @_)->to_abs);
+  my ($class, @path) = @_;
+  $CLEANUP = @path ? 1 : 0;
+  mkdir($WORK_DIR = path(path(__FILE__)->dirname, @path)->to_abs);
   plan skip_all => "Cannot change to $WORK_DIR" unless chdir $WORK_DIR;
   $ENV{MOJO_HOME} = $WORK_DIR;
   return $WORK_DIR;
@@ -45,5 +44,6 @@ HERE
 1;
 
 END {
+  chdir $OLD_DIR if $OLD_DIR;
   $WORK_DIR->remove_tree if $WORK_DIR and $CLEANUP;
 }
