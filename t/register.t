@@ -4,11 +4,11 @@ use t::Helper;
 my $cwd   = t::Helper->cwd;
 my $t     = t::Helper->t(args => '');
 my $asset = $t->app->asset;
-is $asset->daemon,       undef,                 'daemon';
+is $asset->daemon, undef, 'daemon';
+is $asset->route->render({name => 'foo.js'}), '/asset/foo.js', 'route';
 like $asset->assets_dir, qr{\bassets$},         'assets_dir';
 like $asset->out_dir,    qr{\bpublic\W+asset$}, 'out_dir';
 is_deeply + [sort keys %{$asset->dependencies}], [qw(core css js sass vue)], 'dependencies';
-is_deeply $asset->process, ['js'], 'process';
 
 my $env = $asset->_environment_variables;
 is $env->{NODE_ENV},             'development',                            'NODE_ENV';

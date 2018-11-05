@@ -6,11 +6,12 @@ use Mojo::ByteStream 'b';
 use Mojo::File 'path';
 use Mojo::IOLoop::Subprocess;
 use Mojo::JSON;
+use Mojo::Path;
 
 our $VERSION = '0.01';
 
-sub assets_dir { $_[0]->{assets_dir} }
-sub daemon     { $_[0]->{daemon} }
+sub assets_dir { shift->{assets_dir} }
+sub daemon     { shift->{daemon} }
 
 has dependencies => sub {
   return {
@@ -22,9 +23,8 @@ has dependencies => sub {
   };
 };
 
-sub out_dir { $_[0]->{out_dir} }
-sub process { [@{$_[0]->{process} || []}] }
-sub route   { $_[0]->{route} }
+sub out_dir { shift->{out_dir} }
+sub route   { shift->{route} }
 
 sub register {
   my ($self, $app, $config) = @_;
@@ -33,15 +33,13 @@ sub register {
   # TODO: Not sure if this should be global or not
   $ENV{NODE_ENV} ||= $app->mode eq 'development' ? 'development' : 'production';
 
-  $self->{$_} = $config->{$_}      for qw(process rel_out_dir);
   $self->{$_} = $config->{$_} // 1 for qw(auto_cleanup source_maps);
-  $self->{process}     ||= ['js'];
-  $self->{rel_out_dir} ||= 'asset';
-  $self->{route}       ||= $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
+  $self->{process} = $config->{process} || ['js'];
+  $self->{route} ||= $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
 
   $self->{$_} = path $config->{$_} for grep { $config->{$_} } qw(assets_dir out_dir);
   $self->{assets_dir} ||= path $app->home->rel_file('assets');
-  $self->{out_dir} ||= path $app->static->paths->[0], $self->{rel_out_dir};
+  $self->{out_dir} ||= $self->_build_out_dir($app);
 
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
   $self->_run_webpack($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
@@ -49,7 +47,53 @@ sub register {
   $app->helper($helper => sub { @_ == 1 ? $self : $self->_render_tag(@_) });
 }
 
-sub _generate {
+sub _build_out_dir {
+  my ($self, $app) = @_;
+  my $path = Mojo::Path->new($self->route->render({name => 'name.ext'}));
+  pop @$path;
+  return path $app->static->paths->[0], @$path;
+}
+
+sub _environment_variables {
+  my $self = shift;
+  my %env  = %ENV;
+
+  $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
+  $env{WEBPACK_OUT_DIR}    = $self->out_dir;
+  $env{WEBPACK_SHARE_DIR}   //= $self->_share_dir;
+  $env{WEBPACK_SOURCE_MAPS} //= $self->{source_maps} // 1;
+  $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$self->{process}};
+
+  return \%env;
+}
+
+sub _install_node_deps {
+  my ($self, $app) = @_;
+  my $package_json = Mojo::JSON::decode_json($app->home->rel_file('package.json')->slurp);
+  my $n            = 0;
+
+  system qw(npm install) if %{$package_json->{dependencies}} and !-d $app->home->rel_file('node_modules');
+
+  for my $preset ('core', @{$self->{process}}) {
+    for my $module (@{$self->dependencies->{$preset} || []}) {
+      next if $package_json->{dependencies}{$module};
+      warn "[Webpack] npm install $module\n" if $ENV{MOJO_WEBPACK_DEBUG};
+      system npm => install => $module;
+      $n++;
+    }
+  }
+
+  return $n;
+}
+
+sub _render_tag {
+  my ($self, $c, $name, @args) = @_;
+  my $asset = $self->{assets}{$name} or confess "Invalid asset name $name";
+  $asset->[0]->{src} = $c->url_for('webpack.asset', {name => $asset->[1]});
+  return b $asset->[0];
+}
+
+sub _render_to_file {
   my ($self, $app, $name, $out_file) = @_;
   my $is_generated = '';
 
@@ -68,45 +112,6 @@ sub _generate {
   $template =~ s!__VERSION__!{$app->VERSION || '0.0.1'}!ge;
   $out_file->spurt($template);
   return 'generated';
-}
-
-sub _environment_variables {
-  my $self = shift;
-  my %env  = %ENV;
-
-  $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
-  $env{WEBPACK_OUT_DIR}    = $self->out_dir;
-  $env{WEBPACK_SHARE_DIR}   //= $self->_share_dir;
-  $env{WEBPACK_SOURCE_MAPS} //= $self->{source_maps} // 1;
-  $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$self->process};
-
-  return \%env;
-}
-
-sub _install_node_deps {
-  my ($self, $app) = @_;
-  my $package_json = Mojo::JSON::decode_json($app->home->rel_file('package.json')->slurp);
-  my $n            = 0;
-
-  system qw(npm install) if %{$package_json->{dependencies}} and !-d $app->home->rel_file('node_modules');
-
-  for my $preset ('core', @{$self->process}) {
-    for my $module (@{$self->dependencies->{$preset} || []}) {
-      next if $package_json->{dependencies}{$module};
-      warn "[Webpack] npm install $module\n" if $ENV{MOJO_WEBPACK_DEBUG};
-      system npm => install => $module;
-      $n++;
-    }
-  }
-
-  return $n;
-}
-
-sub _render_tag {
-  my ($self, $c, $name, @args) = @_;
-  my $asset = $self->{assets}{$name} or confess "Invalid asset name $name";
-  $asset->[0]->{src} = $c->url_for('webpack.asset', {name => $asset->[1]});
-  return b $asset->[0];
 }
 
 sub _register_assets {
@@ -128,9 +133,9 @@ sub _run_webpack {
   my $config_file = $app->home->rel_file('webpack.config.js');
   my $env         = $self->_environment_variables;
 
-  $self->_generate($app, 'package.json');
-  $self->_generate($app, 'webpack.config.js');
-  $self->_generate($app, 'webpack.custom.js',
+  $self->_render_to_file($app, 'package.json');
+  $self->_render_to_file($app, 'webpack.config.js');
+  $self->_render_to_file($app, 'webpack.custom.js',
     $self->assets_dir->child(sprintf 'webpack.%s.js', $ENV{WEBPACK_CUSTOM_NAME} || 'custom'));
   $self->_install_node_deps($app);
 

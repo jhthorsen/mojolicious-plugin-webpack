@@ -7,7 +7,7 @@ my $cwd   = t::Helper->cwd('install-deps');
 my $t     = t::Helper->t(args => '', dependencies => {core => ['underscore'], js => []});
 my $asset = $t->app->asset;
 
-is $asset->_generate($t->app, 'package.json'), 'generated', 'generated package.json';
+is $asset->_render_to_file($t->app, 'package.json'), 'generated', 'generated package.json';
 
 $asset->dependencies->{core} = ['underscore'];
 $asset->dependencies->{js}   = [];
