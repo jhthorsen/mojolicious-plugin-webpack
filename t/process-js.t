@@ -7,5 +7,6 @@ my $cwd = t::Helper->cwd;
 my $t = t::Helper->t(process => ['js']);
 
 like $t->app->asset('add.js'), qr{src="/asset/add\.dev\.js"}, 'asset add.js';
+$t->get_ok('/asset/add.dev.js')->status_is(200);
 
 done_testing;
