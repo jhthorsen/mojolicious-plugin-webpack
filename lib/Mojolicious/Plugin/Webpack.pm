@@ -2,7 +2,6 @@ package Mojolicious::Plugin::Webpack;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use Carp 'confess';
-use Mojo::ByteStream 'b';
 use Mojo::File 'path';
 use Mojo::IOLoop::Subprocess;
 use Mojo::JSON;
@@ -44,7 +43,7 @@ sub register {
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
   $self->_run_webpack($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
   $self->_register_assets;
-  $app->helper($helper => sub { @_ == 1 ? $self : $self->_render_tag(@_) });
+  $app->helper($helper => sub { $self->_helper(@_) });
 }
 
 sub _build_out_dir {
@@ -67,6 +66,15 @@ sub _environment_variables {
   return \%env;
 }
 
+sub _helper {
+  my ($self, $c, $name, @args) = @_;
+  return $self if @_ == 2;
+
+  my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
+  my ($tag_helper, $route_args) = @$asset;
+  return $c->$tag_helper($c->url_for('webpack.asset', $route_args), @args);
+}
+
 sub _install_node_deps {
   my ($self, $app) = @_;
   my $package_json = Mojo::JSON::decode_json($app->home->rel_file('package.json')->slurp);
@@ -84,13 +92,6 @@ sub _install_node_deps {
   }
 
   return $n;
-}
-
-sub _render_tag {
-  my ($self, $c, $name, @args) = @_;
-  my $asset = $self->{assets}{$name} or confess "Invalid asset name $name";
-  $asset->[0]->{src} = $c->url_for('webpack.asset', {name => $asset->[1]});
-  return b $asset->[0];
 }
 
 sub _render_to_file {
@@ -119,12 +120,17 @@ sub _register_assets {
 
   my $path_to_markup = $self->out_dir->child(sprintf 'webpack.%s.html',
     $ENV{WEBPACK_CUSTOM_NAME} || ($ENV{NODE_ENV} ne 'production' ? 'development' : 'production'));
-  my $markup = Mojo::DOM->new($path_to_markup->slurp);
+  my $markup  = Mojo::DOM->new($path_to_markup->slurp);
+  my $name_re = qr{(.*)\.\w+\.(css|js)$}i;
 
-  $markup->find('link, script')->each(sub {
-    my $tag = shift;
-    my $src = $tag->{src} || $tag->{href};
-    $self->{assets}{"$1.$2"} = [$tag, $src] if $src =~ m!(.*)\.\w+\.(css|js)$!i;
+  $markup->find('link')->each(sub {
+    my $name = shift->{href} // '';
+    $self->{assets}{"$1.$2"} = [stylesheet => {name => $name}] if $name =~ $name_re;
+  });
+
+  $markup->find('script')->each(sub {
+    my $name = shift->{src} // '';
+    $self->{assets}{"$1.$2"} = [javascript => {name => $name}] if $name =~ $name_re;
   });
 }
 
