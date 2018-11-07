@@ -3,14 +3,14 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use Carp 'confess';
 use Mojo::File 'path';
-use Mojo::IOLoop::Subprocess;
 use Mojo::JSON;
 use Mojo::Path;
+
+use constant LAZY => $ENV{MOJO_WEBPACK_LAZY} ? 1 : 0;
 
 our $VERSION = '0.01';
 
 sub assets_dir { shift->{assets_dir} }
-sub daemon     { shift->{daemon} }
 
 has dependencies => sub {
   return {
@@ -41,8 +41,7 @@ sub register {
   $self->{out_dir} ||= $self->_build_out_dir($app);
 
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
-  $self->_run_webpack($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
-  $self->_register_assets;
+  $self->_webpack_run($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
   $app->helper($helper => sub { $self->_helper(@_) });
 }
 
@@ -53,23 +52,11 @@ sub _build_out_dir {
   return path $app->static->paths->[0], @$path;
 }
 
-sub _environment_variables {
-  my $self = shift;
-  my %env  = %ENV;
-
-  $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
-  $env{WEBPACK_OUT_DIR}    = $self->out_dir;
-  $env{WEBPACK_SHARE_DIR}   //= $self->_share_dir;
-  $env{WEBPACK_SOURCE_MAPS} //= $self->{source_maps} // 1;
-  $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$self->{process}};
-
-  return \%env;
-}
-
 sub _helper {
   my ($self, $c, $name, @args) = @_;
   return $self if @_ == 2;
 
+  $self->_register_assets if !$self->{assets} or LAZY;    # Lazy read the generated markup
   my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
   my ($tag_helper, $route_args) = @$asset;
   return $c->$tag_helper($c->url_for('webpack.asset', $route_args), @args);
@@ -81,7 +68,8 @@ sub _install_node_deps {
   my $package_json = Mojo::JSON::decode_json($package_file->slurp);
   my $n            = 0;
 
-  system qw(npm install) if %{$package_json->{dependencies}} and !-d path $package_file->dirname, 'node_modules';
+  my $CWD = Mojolicious::Plugin::Webpack::CWD->new($package_file->dirname);
+  system qw(npm install) if %{$package_json->{dependencies}} and !-d 'node_modules';
 
   for my $preset ('core', @{$self->{process}}) {
     for my $module (@{$self->dependencies->{$preset} || []}) {
@@ -117,8 +105,7 @@ sub _render_to_file {
 }
 
 sub _register_assets {
-  my $self = shift;
-
+  my $self           = shift;
   my $path_to_markup = $self->out_dir->child(sprintf 'webpack.%s.html',
     $ENV{WEBPACK_CUSTOM_NAME} || ($ENV{NODE_ENV} ne 'production' ? 'development' : 'production'));
   my $markup  = Mojo::DOM->new($path_to_markup->slurp);
@@ -135,10 +122,8 @@ sub _register_assets {
   });
 }
 
-sub _run_webpack {
+sub _webpack_run {
   my ($self, $app) = @_;
-  my $config_file = $app->home->rel_file('webpack.config.js');
-  my $env         = $self->_environment_variables;
 
   $self->_render_to_file($app, 'package.json');
   $self->_render_to_file($app, 'webpack.config.js');
@@ -146,28 +131,51 @@ sub _run_webpack {
     $self->assets_dir->child(sprintf 'webpack.%s.js', $ENV{WEBPACK_CUSTOM_NAME} || 'custom'));
   $self->_install_node_deps;
 
-  unless (-e $env->{WEBPACK_OUT_DIR}) {
-    path($env->{WEBPACK_OUT_DIR})->make_path;
-  }
-  unless (-w $env->{WEBPACK_OUT_DIR}) {
-    warn "[Webpack] Cannot write to $env->{WEBPACK_OUT_DIR}\n" if $ENV{MOJO_WEBPACK_DEBUG};
-    return;
-  }
+  my $env = $self->_webpack_environment;
+  map { warn "[Webpack] $_=$env->{$_}\n" } grep {/^WEBPACK_/} sort keys %$env if $ENV{MOJO_WEBPACK_DEBUG};
 
-  my @cmd = $env->{WEBPACK_BINARY} || $app->home->rel_file('node_modules/.bin/webpack');
+  path($env->{WEBPACK_OUT_DIR})->make_path unless -e $env->{WEBPACK_OUT_DIR};
+  return $ENV{MOJO_WEBPACK_DEBUG} ? warn "[Webpack] Cannot write to $env->{WEBPACK_OUT_DIR}\n" : 1
+    unless -w $env->{WEBPACK_OUT_DIR};
+
+  my $config_file = $self->{files}{'webpack.config.js'}[1];
+  my @cmd = $ENV{MOJO_WEBPACK_BINARY} || path($config_file->dirname, qw(node_modules .bin webpack))->to_string;
   push @cmd, '--config' => $config_file->to_string;
   push @cmd, '--progress', '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
   push @cmd, split /\s+/, +($ENV{MOJO_WEBPACK_ARGS} || '');
-
   warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};
-  map { warn "[Webpack] $_=$env->{$_}\n" } grep {/^WEBPACK_/} sort keys %$env if $ENV{MOJO_WEBPACK_DEBUG};
-  local %ENV = %$env;
-  return system @cmd unless grep {/--watch/} @cmd;
-  $self->{daemon} = Mojo::IOLoop::Subprocess->new->run(sub { %ENV = %$env; system @cmd }, sub { });
+
+  my $run_with = (grep {/--watch/} @cmd) ? 'exec' : 'system';
+  my $CWD = Mojolicious::Plugin::Webpack::CWD->new($config_file->dirname);
+  { local %ENV = %$env; $run_with eq 'exec' ? exec @cmd : system @cmd }
+  die "[Webpack] $run_with @cmd: $!" if $!;
+
+  # Register generated assets if webpack was run with system above
+  $self->_register_assets;
 }
 
 sub _share_dir {
   state $share = path(path(__FILE__)->dirname, 'Webpack');
 }
+
+sub _webpack_environment {
+  my $self = shift;
+  my %env  = %ENV;
+
+  $env{WEBPACK_ASSETS_DIR} = $self->assets_dir;
+  $env{WEBPACK_OUT_DIR}    = $self->out_dir;
+  $env{WEBPACK_SHARE_DIR}   //= $self->_share_dir;
+  $env{WEBPACK_SOURCE_MAPS} //= $self->{source_maps} // 1;
+  $env{uc "WEBPACK_RULE_FOR_$_"} = 1 for @{$self->{process}};
+
+  return \%env;
+}
+
+package    # hide from pause
+  Mojolicious::Plugin::Webpack::CWD;
+
+sub new { _chdir(bless([$_[2] || Mojo::File->new->to_string], $_[0]), $_[1]) }
+sub _chdir { chdir $_[1] or die "[Webpack] chdir $_[1]: $!"; $_[0] }
+sub DESTROY { $_[0]->_chdir($_[0]->[0]) }
 
 1;

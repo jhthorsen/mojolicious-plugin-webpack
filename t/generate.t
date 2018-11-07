@@ -3,7 +3,7 @@ use Mojo::File 'path';
 use Test::Mojo;
 use Test::More;
 
-$ENV{MOJO_WEBPACK_RUN} = 0;
+$ENV{MOJO_WEBPACK_ARGS} = '';
 
 my $base = path(path(__FILE__)->dirname, 'generate');
 mkdir $base;

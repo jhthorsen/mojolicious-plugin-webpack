@@ -17,6 +17,8 @@
 node_modules
 package-lock.json
 package.json
+example/assets/webpack.custom.js
 example/public
 example/public/asset/
+example/webpack.config.js
 t/webpack.config.js
