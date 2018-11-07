@@ -15,12 +15,12 @@ plugin Webpack => {assets_dir => $base};
 my $t     = Test::Mojo->new;
 my $asset = $t->app->asset;
 
-diag 'package.json';
+note 'package.json';
 is $asset->_render_to_file($t->app, 'package.json', $base->child('package.json'))->[0], 'generated',
   'generated package.json';
 is $asset->_render_to_file($t->app, 'package.json', $base->child('package.json'))->[0], 'custom', 'custom package.json';
 
-diag 'webpack.config.js';
+note 'webpack.config.js';
 is $asset->_render_to_file($t->app, 'webpack.config.js', $base->child('webpack.config.js'))->[0], 'generated',
   'generated webpack.config.js';
 is $asset->_render_to_file($t->app, 'webpack.config.js', $base->child('webpack.config.js'))->[0], 'current',
@@ -37,11 +37,11 @@ $base->child('webpack.config.js')->spurt($config);
 is $asset->_render_to_file($t->app, 'webpack.config.js', $base->child('webpack.config.js'))->[0], 'custom',
   'custom webpack.config.js';
 
-diag 'webpack.custom.js';
+note 'webpack.custom.js';
 my $custom = $asset->_render_to_file($t->app, 'webpack.custom.js', $base->child('webpack.custom.js'))->[1]->slurp;
 like $custom, qr{module\.exports.*function\(config\)}, 'webpack.custom.js';
 
-$custom =~ s!(assetsDir.*)!Do not overwrite!;
+$custom = "// Do not overwrite\n\n$custom";
 $base->child('webpack.custom.js')->spurt($custom);
 $custom = $asset->_render_to_file($t->app, 'webpack.custom.js', $base->child('webpack.custom.js'))->[1]->slurp;
 like $custom, qr{Do not overwrite}, 'webpack.custom.js is generated once';

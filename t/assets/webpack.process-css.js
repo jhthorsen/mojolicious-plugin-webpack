@@ -1,5 +1,5 @@
 module.exports = function(config) {
   config.entry = {
-    "basic": config.assetsDir + '/css/basic.css',
+    'basic': './assets/css/basic.css',
   };
 };

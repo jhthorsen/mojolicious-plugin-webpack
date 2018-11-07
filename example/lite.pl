@@ -14,8 +14,8 @@ __DATA__
   <head>
     <title>Mojolicious ♥ Webpack</title>
     <link rel="stylesheet" href="/asset/my_app.dev.css">
-    <script src="/asset/my_app.dev.js"></script>
-    %= asset 'demo.css'
+    %= asset 'example.js'
+    %= asset 'example.css'
   </head>
   <body>
     <h1>Mojolicious ♥ Webpack</h1>
