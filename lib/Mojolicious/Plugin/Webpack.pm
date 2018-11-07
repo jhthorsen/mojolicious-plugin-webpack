@@ -179,3 +179,165 @@ sub _chdir { chdir $_[1] or die "[Webpack] chdir $_[1]: $!"; $_[0] }
 sub DESTROY { $_[0]->_chdir($_[0]->[0]) }
 
 1;
+
+=encoding utf8
+
+=head1 NAME
+
+Mojolicious::Plugin::Webpack - Mojolicious ♥ Webpack
+
+=head1 SYNOPSIS
+
+Check out
+L<https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example>
+for a working example.
+
+=head2 Define assets
+
+One or more assets need to be defined. The minimum is to create one
+L<entry point|https://webpack.js.org/concepts/#entry> and add it to
+the C<webpack.custom.js> file.
+
+  # Entrypoint: ./assets/app.js
+  // This will result in one css and one js asset.
+  import "../css/css-example.css";
+  console.log("I'm loaded!");
+
+  # Config file: ./assets/webpack.custom.js
+  module.exports = function(config) {
+    config.entry = {
+      "cool_beans": "./assets/app.js",
+    };
+  };
+
+=head2 Application
+
+Your lite or full app, need to load L<Mojolicious::Plugin::Webpack> and
+tell it what kind of assets it should be able to process:
+
+  $app->plugin(Webpack => {process => [qw(js css)]});
+
+See L</register> for more config options.
+
+=head2 Template
+
+To include the generated assets in your template, you can use the L</asset>
+helper:
+
+  %= asset "my_app.css"
+  %= asset "my_app.js"
+
+=head2 Start application
+
+You can start the application using C<daemon>, C<hypnotoad> or any Mojolicious
+server you want, but if you want rapid development you should use
+C<crushinator>, which is an alternative to C<morbo>:
+
+  $ crushinator -h
+  $ crushinator ./my_app.pl
+
+=head1 DESCRIPTION
+
+L<Mojolicious::Plugin::Webpack> is a L<Mojolicious> plugin to make it easier to
+work with L<https://webpack.js.org/>.
+
+Note that L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, and
+changes might come without a warning.
+
+=head1 HELPERS
+
+=head2 asset
+
+  warn $app->asset->out_dir;
+  $c->asset("cool_beans.js", @args);
+  %= asset "cool_beans.css", media => "print"
+
+This helper will return the plugin instance if no arguments is passed in, or a
+HTML tag created with either L<Mojolicious::Plugin::TagHelpers/javascript> or
+L<Mojolicious::Plugin::TagHelpers/stylesheet> if a valid asset name is passed
+in.
+
+=head1 ATTRIBUTES
+
+=head2 assets_dir
+
+  $path = $self->assets_dir;
+
+Holds a L<Mojo::File> object pointing to the private directoy where source
+files are read from.
+
+=head2 dependencies
+
+  $hash_ref = $self->dependencies;
+
+Holds a mapping between what this plugin can L</process> and which node modules
+it depends on.
+
+=head2 out_dir
+
+  $path = $self->out_dir;
+
+Holds a L<Mojo::File> object pointing to the public directoy where processed
+assets are written to.
+
+=head2 route
+
+  $route = $self->route;
+
+Holds a L<Mojolicious::Routes::Route> object that generates the URLs to a
+processed asset.
+
+=head1 METHODS
+
+=head2 register
+
+  $self->register($app, \%config);
+
+The C<%config> passed when loading this plugin can have:
+
+=head3 auto_cleanup
+
+Set this to "0" if you want to keep the old files in L</out_dir>.
+
+Default: enabled.
+
+=head3 dependencies
+
+Holds a hash ref with mapping between what to L</process> and which node module
+that need to be installed to do so.
+
+=head3 helper
+
+Name of the helper that will be added to your application.
+
+Default: C<"asset">.
+
+=head3 process
+
+A list of assets to process. Currently "css", "js", "sass" and "vue" is
+supported.
+
+Default: C<["js"]>.
+
+=head3 source_maps
+
+Set this to "0" if you do not want source maps generated.
+
+Default: enabled.
+
+=head1 AUTHOR
+
+Jan Henning Thorsen
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2018, Jan Henning Thorsen
+
+This program is free software, you can redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
+
+=head1 SEE ALSO
+
+L<Mojolicious::Plugin::AssetPack>.
+
+=cut
