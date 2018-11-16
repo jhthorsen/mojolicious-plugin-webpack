@@ -77,5 +77,4 @@ t/generate
 t/package-lock\.json
 t/package\.json
 t/public/.gitignore
-t/public/asset
 t/webpack\.config\.js
