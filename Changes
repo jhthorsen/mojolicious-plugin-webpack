@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+0.03 Not Released
+ - Add url_for() method
+
 0.02 2018-11-16T19:53:02+0900
  - Fix markup.t
 

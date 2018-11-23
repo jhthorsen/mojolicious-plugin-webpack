@@ -45,6 +45,12 @@ sub register {
   $app->helper($helper => sub { $self->_helper(@_) });
 }
 
+sub url_for {
+  my ($self, $c, $name) = @_;
+  my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
+  return $c->url_for('webpack.asset', $asset->[1]);
+}
+
 sub _build_out_dir {
   my ($self, $app) = @_;
   my $path = Mojo::Path->new($self->route->render({name => 'name.ext'}));
@@ -55,6 +61,7 @@ sub _build_out_dir {
 sub _helper {
   my ($self, $c, $name, @args) = @_;
   return $self if @_ == 2;
+  return $self->$name($c, @args) if $name =~ m!^\w+$!;
 
   $self->_register_assets if !$self->{assets} or LAZY;    # Lazy read the generated markup
   my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
@@ -251,11 +258,16 @@ changes might come without a warning.
   warn $app->asset->out_dir;
   $c->asset("cool_beans.js", @args);
   %= asset "cool_beans.css", media => "print"
+  %= asset(url_for => "cool_beans.css")
+  %= asset->url_for($c, "cool_beans.css")
 
 This helper will return the plugin instance if no arguments is passed in, or a
 HTML tag created with either L<Mojolicious::Plugin::TagHelpers/javascript> or
 L<Mojolicious::Plugin::TagHelpers/stylesheet> if a valid asset name is passed
 in.
+
+You can also use it to call a method and pass on C<$c> by passing in a method
+name as the first argument, such as L</url_for>.
 
 =head1 ATTRIBUTES
 
@@ -324,6 +336,12 @@ Default: C<["js"]>.
 Set this to "0" if you do not want source maps generated.
 
 Default: enabled.
+
+=head2 url_for
+
+  $url = $self->url_for($c, $asset_name);
+
+Returns a L<Mojo::URL> for a given asset.
 
 =head1 AUTHOR
 
