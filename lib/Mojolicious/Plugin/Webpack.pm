@@ -325,6 +325,33 @@ set the C<MOJO_WEBPACK_RUN> environment variable to "1". Example:
 
   MOJO_WEBPACK_RUN=1 ./myapp.pl daemon
 
+=head2 Testing
+
+If you want to make sure you have built all the assets, you can make a test
+file like "build-assets.t":
+
+  use Test::More;
+  use Test::Mojo;
+
+  # Run with TEST_BUILD_ASSETS=1 prove -vl t/build-assets.t
+  plan skip_all => "TEST_BUILD_ASSETS=1" unless $ENV{TEST_BUILD_ASSETS};
+
+  # Load the app and make a test object
+  $ENV{MOJO_MODE}        = 'production';
+  $ENV{MOJO_WEBPACK_RUN} = 1;
+  use FindBin;
+  require "$FindBin::Bin/../myapp.pl";
+  my $t = Test::Mojo->new;
+
+  # Find all the tags and make sure they can be loaded
+  $t->get_ok("/")->status_is(200);
+  $t->element_count_is('script[src], link[href][rel=stylesheet]', 2);
+  $t->tx->res->dom->find("script[src], link[href][rel=stylesheet]")->each(sub {
+    $t->get_ok($_->{href} || $_->{src})->status_is(200);
+  });
+
+  done_testing;
+
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Webpack> is a L<Mojolicious> plugin to make it easier to

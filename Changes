@@ -4,6 +4,7 @@ Revision history for perl distribution Mojolicious-Plugin-Webpack
  - Add url_for() method
  - Will migrate assetpack.def from AssetPack into webpack custom config
  - Change webpack to only run when requested
+ - Documented how to test your assets
 
 0.02 2018-11-16T19:53:02+0900
  - Fix markup.t
