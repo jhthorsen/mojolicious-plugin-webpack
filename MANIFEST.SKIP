@@ -78,3 +78,5 @@ t/package-lock\.json
 t/package\.json
 t/public/.gitignore
 t/webpack\.config\.js
+t/migrate-from-assetpack/webpack\.config\.js
+t/migrate-from-assetpack/public

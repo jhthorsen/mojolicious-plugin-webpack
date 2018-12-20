@@ -21,3 +21,5 @@ example/public
 example/public/asset/
 example/webpack.config.js
 t/webpack.config.js
+t/migrate-from-assetpack/webpack.config.js
+t/migrate-from-assetpack/public/

@@ -12,7 +12,7 @@ sub t {
   my ($class, %config) = @_;
   my $app = Mojolicious->new;
   $ENV{MOJO_WEBPACK_ARGS} = delete $config{args} if defined $config{args};
-  $ENV{WEBPACK_CUSTOM_NAME} = path($0)->basename('.t');
+  $ENV{WEBPACK_CUSTOM_NAME} //= path($0)->basename('.t');
   $app->plugin(Webpack => \%config);
   return Test::Mojo->new($app);
 }

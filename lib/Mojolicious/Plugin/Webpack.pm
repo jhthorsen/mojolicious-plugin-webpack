@@ -5,6 +5,7 @@ use Carp 'confess';
 use Mojo::File 'path';
 use Mojo::JSON;
 use Mojo::Path;
+use Mojo::Util;
 
 use constant LAZY => $ENV{MOJO_WEBPACK_LAZY} ? 1 : 0;
 
@@ -40,6 +41,7 @@ sub register {
   $self->{assets_dir} ||= path $app->home->rel_file('assets');
   $self->{out_dir} ||= $self->_build_out_dir($app);
 
+  $self->_migrate_from_assetpack;
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
   $self->_webpack_run($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
   $app->helper($helper => sub { $self->_helper(@_) });
@@ -56,6 +58,10 @@ sub _build_out_dir {
   my $path = Mojo::Path->new($self->route->render({name => 'name.ext'}));
   pop @$path;
   return path $app->static->paths->[0], @$path;
+}
+
+sub _custom_file {
+  return shift->assets_dir->child(sprintf 'webpack.%s.js', $ENV{WEBPACK_CUSTOM_NAME} || 'custom');
 }
 
 sub _helper {
@@ -88,6 +94,71 @@ sub _install_node_deps {
   }
 
   return $n;
+}
+
+sub _migrate_from_assetpack {
+  my $self = shift;
+
+  my $assetpack_def = $self->assets_dir->child('assetpack.def');
+  return unless -e $assetpack_def;
+
+  my $webpack_custom = $self->_custom_file;
+  if (-s $webpack_custom and !$ENV{WEBPACK_MIGRATE_FROM_ASSETPACK}) {
+    warn <<"HERE";
+[Webpack] Cannot migrate from AssetPack, since @{[$webpack_custom->basename]} exists.
+Please remove
+  $webpack_custom
+to migrate, or remove
+  $assetpack_def
+if you have migrated.
+HERE
+    return;
+  }
+
+  # Copy/paste from AssetPack.pm
+  my ($topic, %found);
+  for (split /\r?\n/, $assetpack_def->slurp) {
+    s/\s*\#.*//;
+    if (/^\<(\S*)\s+(\S+)\s*(.*)/) {
+      my ($class, $url, $args) = ($1, $2, $3);
+      $topic =~ s!\.\w+$!!;    # Remove extension
+      push @{$found{$topic}}, $url;
+    }
+    elsif (/^\!\s*(.+)/) { $topic = Mojo::Util::trim($1); }
+  }
+
+  my $entries = '';
+  for my $topic (sort keys %found) {
+    my $entry = $self->assets_dir->child("entry-$topic.js");
+    warn "[Webpack] Generate entrypoint: $entry\n";
+    $entry->spurt(join '', map {qq(import "./$_";\n)} @{$found{$topic}}) unless -e $entry;
+    $entries .= sprintf qq(    '%s': './%s/entry-%s.js',\n), $topic, $self->assets_dir->basename, $topic;
+  }
+
+  $entries =~ s!,\n$!!s;
+  warn "[Webpack] Generate webpack config: $webpack_custom\n";
+  $webpack_custom->spurt(<<"HERE");
+module.exports = function(config) {
+  config.entry = {
+$entries
+  };
+};
+HERE
+
+  warn <<"HERE";
+[Webpack] AssetPack .def file was migrated into webpack config file:
+
+$assetpack_def
+  => $webpack_custom
+
+You might want to remove old AssetPack files, such as:
+* @{[$self->assets_dir->child('assetpack.def')]}
+* @{[$self->assets_dir->child('assetpack.db')]}
+* @{[$self->assets_dir->child('cache')]}/*css
+* @{[$self->assets_dir->child('cache')]}/*js
+
+HERE
+
 }
 
 sub _render_to_file {
@@ -134,14 +205,13 @@ sub _webpack_run {
 
   $self->_render_to_file($app, 'package.json');
   $self->_render_to_file($app, 'webpack.config.js');
-  $self->_render_to_file($app, 'webpack.custom.js',
-    $self->assets_dir->child(sprintf 'webpack.%s.js', $ENV{WEBPACK_CUSTOM_NAME} || 'custom'));
+  $self->_render_to_file($app, 'webpack.custom.js', $self->_custom_file);
   $self->_install_node_deps;
 
   my $env = $self->_webpack_environment;
   map { warn "[Webpack] $_=$env->{$_}\n" } grep {/^WEBPACK_/} sort keys %$env if $ENV{MOJO_WEBPACK_DEBUG};
 
-  path($env->{WEBPACK_OUT_DIR})->make_path unless -e $env->{WEBPACK_OUT_DIR};
+  path($env->{WEBPACK_OUT_DIR})->make_path unless -d $env->{WEBPACK_OUT_DIR};
   return $ENV{MOJO_WEBPACK_DEBUG} ? warn "[Webpack] Cannot write to $env->{WEBPACK_OUT_DIR}\n" : 1
     unless -w $env->{WEBPACK_OUT_DIR};
 
@@ -251,6 +321,19 @@ work with L<https://webpack.js.org/>.
 
 Note that L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, and
 changes might come without a warning.
+
+=head1 MIGRATING FROM ASSETPACK
+
+Are you already a user of L<Mojolicious::Plugin::AssetPack>?
+L<Mojolicious::Plugin::Webpack> will automatically detect your C<assetpack.def>
+file and convert it into a custom webpack config, so you don't have to do
+much, except changing how you load the plugin:
+
+  # AssetPack
+  $app->plugin(AssetPack => {pipes => [qw(Sass JavaScript)]});
+
+  # Webpack
+  $app->plugin(Webpack => {process => [qw(sass js)]});
 
 =head1 HELPERS
 
