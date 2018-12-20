@@ -154,6 +154,7 @@ sub _webpack_run {
 
   my $run_with = (grep {/--watch/} @cmd) ? 'exec' : 'system';
   my $CWD = Mojolicious::Plugin::Webpack::CWD->new($config_file->dirname);
+  local $!;    # Make sure only system/exec sets $!
   { local %ENV = %$env; $run_with eq 'exec' ? exec @cmd : system @cmd }
   die "[Webpack] $run_with @cmd: $!" if $!;
 
