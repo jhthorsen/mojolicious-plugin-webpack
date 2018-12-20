@@ -2,7 +2,7 @@ use lib '.';
 use t::Helper;
 
 my $cwd = t::Helper->cwd;
-my $t   = t::Helper->t(args => '');
+my $t   = t::Helper->t;
 my $c   = $t->app->build_controller;
 
 test_tag('foo.js', 'script', src => '/asset/foo.123.js');

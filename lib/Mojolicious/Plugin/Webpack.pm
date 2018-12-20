@@ -43,7 +43,8 @@ sub register {
 
   $self->_migrate_from_assetpack;
   $self->dependencies->{$_} = $config->{dependencies}{$_} for keys %{$config->{dependencies} || {}};
-  $self->_webpack_run($app) if $ENV{MOJO_WEBPACK_ARGS} // 1;
+  $self->_webpack_run($app) if $ENV{MOJO_WEBPACK_RUN};
+  $self->_register_assets;
   $app->helper($helper => sub { $self->_helper(@_) });
 }
 
@@ -69,7 +70,7 @@ sub _helper {
   return $self if @_ == 2;
   return $self->$name($c, @args) if $name =~ m!^\w+$!;
 
-  $self->_register_assets if !$self->{assets} or LAZY;    # Lazy read the generated markup
+  $self->_register_assets if LAZY;    # Lazy read the generated markup
   my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
   my ($tag_helper, $route_args) = @$asset;
   return $c->$tag_helper($c->url_for('webpack.asset', $route_args), @args);
@@ -186,6 +187,13 @@ sub _register_assets {
   my $self           = shift;
   my $path_to_markup = $self->out_dir->child(sprintf 'webpack.%s.html',
     $ENV{WEBPACK_CUSTOM_NAME} || ($ENV{NODE_ENV} ne 'production' ? 'development' : 'production'));
+
+  unless (-e $path_to_markup) {
+    warn "[Webpack] Could not find $path_to_markup. Sure webpack has been run?"
+      if !$ENV{HARNESS_VERSION} or $ENV{HARNESS_IS_VERBOSE};
+    return,;
+  }
+
   my $markup  = Mojo::DOM->new($path_to_markup->slurp);
   my $name_re = qr{(.*)\.\w+\.(css|js)$}i;
 
@@ -216,10 +224,11 @@ sub _webpack_run {
     unless -w $env->{WEBPACK_OUT_DIR};
 
   my $config_file = $self->{files}{'webpack.config.js'}[1];
-  my @cmd = $ENV{MOJO_WEBPACK_BINARY} || path($config_file->dirname, qw(node_modules .bin webpack))->to_string;
+  my @cmd         = $ENV{MOJO_WEBPACK_BINARY} || path($config_file->dirname, qw(node_modules .bin webpack))->to_string;
+  my @extra       = split /\s+/, +($ENV{MOJO_WEBPACK_RUN} || '');
   push @cmd, '--config' => $config_file->to_string;
   push @cmd, '--progress', '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
-  push @cmd, split /\s+/, +($ENV{MOJO_WEBPACK_ARGS} || '');
+  push @cmd, @extra unless @extra == 1 and $extra[0] eq '1';
   warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};
 
   my $run_with = (grep {/--watch/} @cmd) ? 'exec' : 'system';
@@ -227,9 +236,6 @@ sub _webpack_run {
   local $!;    # Make sure only system/exec sets $!
   { local %ENV = %$env; $run_with eq 'exec' ? exec @cmd : system @cmd }
   die "[Webpack] $run_with @cmd: $!" if $!;
-
-  # Register generated assets if webpack was run with system above
-  $self->_register_assets;
 }
 
 sub _share_dir {
@@ -302,8 +308,8 @@ See L</register> for more config options.
 To include the generated assets in your template, you can use the L</asset>
 helper:
 
-  %= asset "my_app.css"
-  %= asset "my_app.js"
+  %= asset "myapp.css"
+  %= asset "myapp.js"
 
 =head2 Start application
 
@@ -312,7 +318,12 @@ server you want, but if you want rapid development you should use
 C<crushinator>, which is an alternative to C<morbo>:
 
   $ crushinator -h
-  $ crushinator ./my_app.pl
+  $ crushinator ./myapp.pl
+
+However if you want to use another daemon and make C<webpack> run, you need to
+set the C<MOJO_WEBPACK_RUN> environment variable to "1". Example:
+
+  MOJO_WEBPACK_RUN=1 ./myapp.pl daemon
 
 =head1 DESCRIPTION
 

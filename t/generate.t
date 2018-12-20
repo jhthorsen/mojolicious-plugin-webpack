@@ -3,8 +3,7 @@ use Mojo::File 'path';
 use Test::Mojo;
 use Test::More;
 
-$ENV{MOJO_WEBPACK_ARGS} = '';
-
+$ENV{MOJO_WEBPACK_RUN} = 0;
 my $base = path(path(__FILE__)->dirname, 'generate');
 mkdir $base;
 plan skip_all => "$base does not exist" unless -d $base;
