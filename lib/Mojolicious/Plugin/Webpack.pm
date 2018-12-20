@@ -7,7 +7,8 @@ use Mojo::JSON;
 use Mojo::Path;
 use Mojo::Util;
 
-use constant LAZY => $ENV{MOJO_WEBPACK_LAZY} ? 1 : 0;
+use constant DEBUG => $ENV{MOJO_WEBPACK_DEBUG} ? 1 : 0;
+use constant LAZY  => $ENV{MOJO_WEBPACK_LAZY}  ? 1 : 0;
 
 our $VERSION = '0.02';
 
@@ -88,7 +89,7 @@ sub _install_node_deps {
   for my $preset ('core', @{$self->{process}}) {
     for my $module (@{$self->dependencies->{$preset} || []}) {
       next if $package_json->{dependencies}{$module};
-      warn "[Webpack] npm install $module\n" if $ENV{MOJO_WEBPACK_DEBUG};
+      warn "[Webpack] npm install $module\n" if DEBUG;
       system npm => install => $module;
       $n++;
     }
@@ -104,7 +105,7 @@ sub _migrate_from_assetpack {
   return unless -e $assetpack_def;
 
   my $webpack_custom = $self->_custom_file;
-  if (-s $webpack_custom and !$ENV{WEBPACK_MIGRATE_FROM_ASSETPACK}) {
+  if (-s $webpack_custom) {
     warn <<"HERE";
 [Webpack] Cannot migrate from AssetPack, since @{[$webpack_custom->basename]} exists.
 Please remove
@@ -217,11 +218,10 @@ sub _webpack_run {
   $self->_install_node_deps;
 
   my $env = $self->_webpack_environment;
-  map { warn "[Webpack] $_=$env->{$_}\n" } grep {/^WEBPACK_/} sort keys %$env if $ENV{MOJO_WEBPACK_DEBUG};
+  map { warn "[Webpack] $_=$env->{$_}\n" } grep {/^WEBPACK_/} sort keys %$env if DEBUG;
 
   path($env->{WEBPACK_OUT_DIR})->make_path unless -d $env->{WEBPACK_OUT_DIR};
-  return $ENV{MOJO_WEBPACK_DEBUG} ? warn "[Webpack] Cannot write to $env->{WEBPACK_OUT_DIR}\n" : 1
-    unless -w $env->{WEBPACK_OUT_DIR};
+  return DEBUG ? warn "[Webpack] Cannot write to $env->{WEBPACK_OUT_DIR}\n" : 1 unless -w $env->{WEBPACK_OUT_DIR};
 
   my $config_file = $self->{files}{'webpack.config.js'}[1];
   my @cmd         = $ENV{MOJO_WEBPACK_BINARY} || path($config_file->dirname, qw(node_modules .bin webpack))->to_string;
@@ -229,7 +229,7 @@ sub _webpack_run {
   push @cmd, '--config' => $config_file->to_string;
   push @cmd, '--progress', '--profile', '--verbose' if $ENV{MOJO_WEBPACK_VERBOSE};
   push @cmd, @extra unless @extra == 1 and $extra[0] eq '1';
-  warn "[Webpack] @cmd\n" if $ENV{MOJO_WEBPACK_DEBUG};
+  warn "[Webpack] @cmd\n" if DEBUG;
 
   my $run_with = (grep {/--watch/} @cmd) ? 'exec' : 'system';
   my $CWD = Mojolicious::Plugin::Webpack::CWD->new($config_file->dirname);
