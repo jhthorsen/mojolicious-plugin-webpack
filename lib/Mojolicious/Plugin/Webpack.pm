@@ -10,7 +10,7 @@ use Mojo::Util;
 use constant DEBUG => $ENV{MOJO_WEBPACK_DEBUG} ? 1 : 0;
 use constant LAZY  => $ENV{MOJO_WEBPACK_LAZY}  ? 1 : 0;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub assets_dir { shift->{assets_dir} }
 
