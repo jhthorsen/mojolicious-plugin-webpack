@@ -12,7 +12,7 @@ use constant DEBUG => $ENV{MOJO_WEBPACK_DEBUG} ? 1 : 0;
 
 has dependencies => sub {
   return {
-    core => [qw(webpack-cli webpack webpack-md5-hash html-webpack-plugin)],
+    core => [qw(webpack webpack-cli webpack-md5-hash html-webpack-plugin)],
     css  => [qw(css-loader mini-css-extract-plugin optimize-css-assets-webpack-plugin)],
     js   => [qw(@babel/core @babel/preset-env babel-loader uglifyjs-webpack-plugin)],
     sass => [qw(node-sass sass-loader)],
