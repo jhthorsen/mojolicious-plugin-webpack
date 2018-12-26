@@ -53,9 +53,9 @@ server you want, but if you want rapid development you should use
     $ crushinator ./myapp.pl
 
 However if you want to use another daemon and make `webpack` run, you need to
-set the `MOJO_WEBPACK_RUN` environment variable to "1". Example:
+set the `MOJO_WEBPACK_BUILD` environment variable to "1". Example:
 
-    MOJO_WEBPACK_RUN=1 ./myapp.pl daemon
+    MOJO_WEBPACK_BUILD=1 ./myapp.pl daemon
 
 ## Testing
 
@@ -69,8 +69,8 @@ file like "build-assets.t":
     plan skip_all => "TEST_BUILD_ASSETS=1" unless $ENV{TEST_BUILD_ASSETS};
 
     # Load the app and make a test object
-    $ENV{MOJO_MODE}        = 'production';
-    $ENV{MOJO_WEBPACK_RUN} = 1;
+    $ENV{MOJO_MODE}          = 'production';
+    $ENV{MOJO_WEBPACK_BUILD} = 1;
     use FindBin;
     require "$FindBin::Bin/../myapp.pl";
     my $t = Test::Mojo->new;
@@ -87,7 +87,10 @@ file like "build-assets.t":
 # DESCRIPTION
 
 [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is a [Mojolicious](https://metacpan.org/pod/Mojolicious) plugin to make it easier to
-work with [https://webpack.js.org/](https://webpack.js.org/).
+work with [https://webpack.js.org/](https://webpack.js.org/). This means that this is mostly a
+developer tool. This point is emphasized by installing a "shim" so your
+application does not depend on this plugin at all when running in production.
+See ["PLUGIN SHIM" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder#PLUGIN-SHIM) for more information.
 
 Note that [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is currently EXPERIMENTAL, and
 changes might come without a warning.
@@ -109,11 +112,18 @@ much, except changing how you load the plugin:
 
 ## asset
 
-    warn $app->asset->out_dir;
-    $c->asset("cool_beans.js", @args);
+    # Call a method or access an attribute in this class
+    my $path = $app->asset->out_dir;
+
+    # Call a method, but from inside a mojo template
+    %= asset->url_for($c, "cool_beans.css")
+
+    # Generate a HTML tag
+    my $bytestream = $c->asset("cool_beans.js", @args);
+
+    # Generate a HTML tag, but from inside a mojo template
     %= asset "cool_beans.css", media => "print"
     %= asset(url_for => "cool_beans.css")
-    %= asset->url_for($c, "cool_beans.css")
 
 This helper will return the plugin instance if no arguments is passed in, or a
 HTML tag created with either ["javascript" in Mojolicious::Plugin::TagHelpers](https://metacpan.org/pod/Mojolicious::Plugin::TagHelpers#javascript) or
@@ -130,66 +140,54 @@ name as the first argument, such as ["url\_for"](#url_for).
     $path = $self->assets_dir;
 
 Holds a [Mojo::File](https://metacpan.org/pod/Mojo::File) object pointing to the private directoy where source
-files are read from.
+files are read from. Defaults value is:
 
-## dependencies
+    $app->home->rel_file("assets");
 
-    $hash_ref = $self->dependencies;
+## node\_env
 
-Holds a mapping between what this plugin can ["process"](#process) and which node modules
-it depends on.
+    $str = $self->node_env;
+
+Used to set `NODE_ENV` environment value.
+
+Defaults value is "development" if ["mode" in Mojolicious](https://metacpan.org/pod/Mojolicious#mode) is "development" and
+"production" otherwise. This value usually tells webpack to either minify the
+assets or generate readable output while developing.
 
 ## out\_dir
 
     $path = $self->out_dir;
 
 Holds a [Mojo::File](https://metacpan.org/pod/Mojo::File) object pointing to the public directoy where processed
-assets are written to.
+assets are written to. Default value is:
+
+    $app->static->paths->[0] . "/asset";
 
 ## route
 
     $route = $self->route;
 
 Holds a [Mojolicious::Routes::Route](https://metacpan.org/pod/Mojolicious::Routes::Route) object that generates the URLs to a
-processed asset.
+processed asset. Default value is `/asset/*name`.
 
 # METHODS
 
 ## register
 
     $self->register($app, \%config);
+    $app->plugin("Webpack", \%config);
 
-The `%config` passed when loading this plugin can have:
+Used to register this plugin into your [Mojolicious](https://metacpan.org/pod/Mojolicious) app.
 
-### auto\_cleanup
+The `%config` passed when loading this plugin can have any of the
+["ATTRIBUTES" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder#ATTRIBUTES), in addition to these
+attributes:
 
-Set this to "0" if you want to keep the old files in ["out\_dir"](#out_dir).
+- helper
 
-Default: enabled.
+    Name of the helper that will be added to your application.
 
-### dependencies
-
-Holds a hash ref with mapping between what to ["process"](#process) and which node module
-that need to be installed to do so.
-
-### helper
-
-Name of the helper that will be added to your application.
-
-Default: `"asset"`.
-
-### process
-
-A list of assets to process. Currently "css", "js", "sass" and "vue" is
-supported.
-
-Default: `["js"]`.
-
-### source\_maps
-
-Set this to "0" if you do not want source maps generated.
-
-Default: enabled.
+    Default: "asset".
 
 ## url\_for
 
@@ -209,5 +207,7 @@ This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.
 
 # SEE ALSO
+
+[Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder).
 
 [Mojolicious::Plugin::AssetPack](https://metacpan.org/pod/Mojolicious::Plugin::AssetPack).
