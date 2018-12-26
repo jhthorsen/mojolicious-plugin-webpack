@@ -19,6 +19,11 @@ sub route      { shift->{route} }
 sub register {
   my ($self, $app, $config) = @_;
 
+  # If running inside a shim
+  return $app->plugin('Mojolicious::Plugin::Webpack' => $config)
+    unless $ENV{MOJO_WEBPACK_TEST_INTERNAL}
+    or $self->isa('Mojolicious::Plugin::Webpack');
+
   $self->{route} = $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
 
   $self->{$_} = path $config->{$_} for grep { $config->{$_} } qw(assets_dir out_dir);
@@ -182,7 +187,10 @@ file like "build-assets.t":
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Webpack> is a L<Mojolicious> plugin to make it easier to
-work with L<https://webpack.js.org/>.
+work with L<https://webpack.js.org/>. This means that this is mostly a
+developer tool. This point is emphasized by installing a "shim" so your
+application does not depend on this plugin at all when running in production.
+See L<Mojolicious::Plugin::Webpack::Builder/PLUGIN SHIM> for more information.
 
 Note that L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, and
 changes might come without a warning.

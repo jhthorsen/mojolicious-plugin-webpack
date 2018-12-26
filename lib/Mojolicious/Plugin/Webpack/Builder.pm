@@ -46,6 +46,7 @@ sub register {
   $self->_render_to_file($app, 'webpack.custom.js', $self->_custom_file);
   $self->_install_node_deps;
   $self->_webpack_run($app);
+  $self->_install_shim($app) if $config->{shim};
 }
 
 sub _build_custom_file {
@@ -71,6 +72,41 @@ sub _install_node_deps {
   }
 
   return $n;
+}
+
+sub _install_shim {
+  my ($self, $app) = @_;
+  my $shim_class = sprintf '%s::Plugin::Webpack', ref $app;
+  my $shim_file  = path(Mojo::Util::class_to_path($shim_class));
+  my $record     = 1;
+  my $source     = '';
+
+  return $shim_file if Mojolicious::Plugin::Webpack->VERSION eq ($shim_class->VERSION // '');
+  return $shim_file if !-w $shim_file->dirname;
+
+  my $SOURCE = path($INC{Mojo::Util::class_to_path('Mojolicious::Plugin::Webpack')})->open('<');
+  while (<$SOURCE>) {
+    s/package Mojolicious::Plugin::Webpack;/package $shim_class;/;
+    s/^Mojolicious::Plugin::Webpack\s-/$shim_class -/;
+
+    if (/\{MOJO_WEBPACK_BUILD\}/) {
+      next;
+    }
+    elsif (/^=head1 SYNOPSIS/) {
+      $record = 0;
+      $source .= "=head1 SYNOPSIS\n\nSee L<Mojolicious::Plugin::Webpack>.\n\n";
+    }
+    elsif (/^=head1 MIGRATING FROM ASSETPACK/) {
+      $record = 0;
+    }
+    elsif (!$record and /^=head1/) {
+      $record = 1;
+    }
+
+    $source .= $_ if $record;
+  }
+
+  return $shim_file->spurt($source);
 }
 
 sub _migrate_from_assetpack {
@@ -223,6 +259,43 @@ by L<Mojolicious::Plugin::Webpack>, so you do not have to register it yourself.
 
 Note that it is I<not> a typo in examples below where C<Webpack> is the first
 argument to L<Mojolicious/plugin>.
+
+=head1 PLUGIN SHIM
+
+L<Mojolicious::Plugin::Webpack::Builder> will install a shim of
+L<Mojolicious::Plugin::Webpack> if there is a writable "Plugin" directory in
+your distribution. Example:
+
+  # Generate a full Mojolicious application
+  $ mojo generate app MyApp
+  $ cd my_app
+
+  # Create a Plugin directory
+  $ mkdir -p lib/MyApp/Plugin
+
+  # Edit your application and enable it to load the shim
+  $ $EDITOR lib/MyApp.pm
+
+When editing C<MyApp.pm>, add load the L<Mojolicious::Plugin::Webpack> plugin
+with the "shim" key set:
+
+  sub startup {
+    my $self = shift;
+
+    # Make sure you can load plugins from your application namespaces
+    unshift @{$self->plugins->namespaces}, "MyApp::Plugin";
+
+    # Load the plugin with "shim" set
+    $self->plugin(Webpack => {process => ["js"], shim => 1});
+  }
+
+Save the file and start your application with C<crushinator>:
+
+  $ crushinator ./script/my_app
+
+This will then generate C<lib/MyApp/Plugin/Webpack.pm> which will be enough to
+run in production, which again means that your application does not depend on
+L<Mojolicious::Plugin::Webpack> at all.
 
 =head1 ATTRIBUTES
 
