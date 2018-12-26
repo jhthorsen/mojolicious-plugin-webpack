@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
 BEGIN {
-  $ENV{MOJO_WEBPACK_BUILD} = 1;
   $ENV{MOJO_WEBPACK_DEBUG} //= $ENV{MORBO_VERBOSE} // 0;
   $ENV{MOJO_WEBPACK_LAZY} = 1;
 

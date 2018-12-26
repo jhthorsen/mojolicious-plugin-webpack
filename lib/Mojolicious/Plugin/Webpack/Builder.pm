@@ -44,6 +44,8 @@ sub register {
   $self->_render_to_file($app, 'package.json');
   $self->_render_to_file($app, 'webpack.config.js');
   $self->_render_to_file($app, 'webpack.custom.js', $self->_custom_file);
+  $self->_render_to_file($app, 'my_app.js', $self->assets_dir->child('my_app.js'))
+    if $self->{files}{'webpack.custom.js'}[0] eq 'generated';
   $self->_install_node_deps;
   $self->_webpack_run($app);
   $self->_install_shim($app) if $config->{shim};
