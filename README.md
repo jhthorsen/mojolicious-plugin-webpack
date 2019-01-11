@@ -47,10 +47,10 @@ helper:
 
 You can start the application using `daemon`, `hypnotoad` or any Mojolicious
 server you want, but if you want rapid development you should use
-`crushinator`, which is an alternative to `morbo`:
+`mojo webpack`, which is an alternative to `morbo`:
 
-    $ crushinator -h
-    $ crushinator ./myapp.pl
+    $ mojo webpack -h
+    $ mojo webpack ./myapp.pl
 
 However if you want to use another daemon and make `webpack` run, you need to
 set the `MOJO_WEBPACK_BUILD` environment variable to "1". Example:

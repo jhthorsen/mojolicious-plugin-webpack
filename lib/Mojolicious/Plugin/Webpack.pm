@@ -147,10 +147,10 @@ helper:
 
 You can start the application using C<daemon>, C<hypnotoad> or any Mojolicious
 server you want, but if you want rapid development you should use
-C<crushinator>, which is an alternative to C<morbo>:
+C<mojo webpack>, which is an alternative to C<morbo>:
 
-  $ crushinator -h
-  $ crushinator ./myapp.pl
+  $ mojo webpack -h
+  $ mojo webpack ./myapp.pl
 
 However if you want to use another daemon and make C<webpack> run, you need to
 set the C<MOJO_WEBPACK_BUILD> environment variable to "1". Example:
