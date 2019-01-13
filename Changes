@@ -1,6 +1,6 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
-0.06 Not Released
+0.06 2019-01-13T10:52:34+0900
  - Converted crushinator script to mojo webpack subcommand
    You need to manually remove `which crushinator` if already installed.
 
