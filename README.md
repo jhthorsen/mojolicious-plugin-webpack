@@ -14,15 +14,15 @@ One or more assets need to be defined. The minimum is to create one
 [entry point](https://webpack.js.org/concepts/#entry) and add it to
 the `webpack.custom.js` file.
 
-    # Entrypoint: ./assets/app.js
+    # Entrypoint: ./assets/entry-cool_beans.js
     // This will result in one css and one js asset.
-    import "../css/css-example.css";
-    console.log("I'm loaded!");
+    import '../css/css-example.css';
+    console.log('I'm loaded!');
 
     # Config file: ./assets/webpack.custom.js
     module.exports = function(config) {
       config.entry = {
-        "cool_beans": "./assets/app.js",
+        'cool_beans': './assets/entry-cool_beans.js',
       };
     };
 
@@ -40,8 +40,8 @@ See ["register"](#register) for more config options.
 To include the generated assets in your template, you can use the ["asset"](#asset)
 helper:
 
-    %= asset "myapp.css"
-    %= asset "myapp.js"
+    %= asset "cool_beans.css"
+    %= asset "cool_beans.js"
 
 ## Start application
 

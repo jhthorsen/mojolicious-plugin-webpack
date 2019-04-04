@@ -1,6 +1,6 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
-0.07 Not Released
+0.07 2019-04-04T22:19:40+0700
  - Add Cache-Control to response headers
  - Fix passing on arguments using the "webpack" command
  - Change webpack-md5-hash to the superior webpack-plugin-hash-output
