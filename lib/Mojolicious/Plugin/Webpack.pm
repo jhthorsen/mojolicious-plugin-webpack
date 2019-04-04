@@ -52,7 +52,7 @@ sub _after_static_hook {
     $p->to_string;
   };
 
-  $c->res->headers->cache_control('max-age=86400') if 0 == index $c->req->url->path, $asset_path;
+  $c->res->headers->cache_control(LAZY ? 'no-cache' : 'max-age=86400') if 0 == index $c->req->url->path, $asset_path;
 }
 
 sub _build_assets_dir {
