@@ -3,6 +3,7 @@ Revision history for perl distribution Mojolicious-Plugin-Webpack
 0.07 Not Released
  - Add Cache-Control to response headers
  - Fix passing on arguments using the "webpack" command
+ - Change webpack-md5-hash to the superior webpack-plugin-hash-output
 
 0.06 2019-01-13T10:52:34+0900
  - Converted crushinator script to mojo webpack subcommand
