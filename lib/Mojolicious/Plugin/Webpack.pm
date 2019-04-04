@@ -32,6 +32,7 @@ sub register {
   $self->{out_dir}    ||= $self->_build_out_dir($app);
 
   $app->helper(($config->{helper} || 'asset') => sub { $self->_helper(@_) });
+  $app->hook(after_static => \&_after_static_hook) unless $config->{no_after_static_hook};
   $app->plugin('Webpack::Builder' => $config) if $ENV{MOJO_WEBPACK_BUILD};
   $self->_register_assets;
 }
@@ -40,6 +41,18 @@ sub url_for {
   my ($self, $c, $name) = @_;
   my $asset = $self->{assets}{$name} or confess qq(Unknown asset name "$name".);
   return $c->url_for('webpack.asset', $asset->[1]);
+}
+
+sub _after_static_hook {
+  my $c = shift;
+
+  my $asset_path = $c->app->{'webpack.asset.path'} ||= do {
+    my $p = Mojo::Path->new($c->asset->route->render({name => 'name.ext'}));
+    pop @$p;
+    $p->to_string;
+  };
+
+  $c->res->headers->cache_control('max-age=86400') if 0 == index $c->req->url->path, $asset_path;
 }
 
 sub _build_assets_dir {
