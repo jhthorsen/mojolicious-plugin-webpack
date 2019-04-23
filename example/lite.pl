@@ -4,7 +4,7 @@ use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
 plugin Webpack => {process => [qw(js css sass vue)]};
-get '/' => 'index';
+get '/'        => 'index';
 app->start;
 
 __DATA__
@@ -13,7 +13,6 @@ __DATA__
 <html>
   <head>
     <title>Mojolicious ♥ Webpack</title>
-    <link rel="stylesheet" href="/asset/my_app.dev.css">
     %= asset 'example.js'
     %= asset 'example.css'
   </head>
