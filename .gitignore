@@ -17,6 +17,9 @@
 node_modules
 package-lock.json
 package.json
+example/rollup/public
+example/rollup/public/asset/
+example/rollup/webpack.config.js
 example/webpack/public
 example/webpack/public/asset/
 example/webpack/webpack.config.js

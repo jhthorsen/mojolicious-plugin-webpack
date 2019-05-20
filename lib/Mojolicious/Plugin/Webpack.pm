@@ -118,7 +118,7 @@ Mojolicious::Plugin::Webpack - Mojolicious ♥ Webpack
 =head1 SYNOPSIS
 
 Check out
-L<https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example>
+L<https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/webpack>
 for a working example.
 
 =head2 Define assets
@@ -205,8 +205,31 @@ developer tool. This point is emphasized by installing a "shim" so your
 application does not depend on this plugin at all when running in production.
 See L<Mojolicious::Plugin::Webpack::Builder/PLUGIN SHIM> for more information.
 
+There is also support for L<https://rollupjs.org/>. See L</Rollup> for more
+information.
+
 Note that L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, and
 changes might come without a warning.
+
+After creating the file, you can run the command below to get a development
+server:
+
+  $ perl myapp.pl webpack -c rollup.config.js
+
+If you want to do L</Testing>, you have to set the environment variable
+C<MOJO_WEBPACK_CONFIG> in addition to L<TEST_BUILD_ASSETS>:
+
+  $ENV{MOJO_WEBPACK_CONFIG} = 'rollup.config.js';
+
+=head2 Rollup
+
+L<rollup.js|https://rollupjs.org/> is an alternative to Webpack. Both
+accomplish more or less the same thing, but in different ways. There might be a
+"Rollup" plugin in the future, but for now this plugin supports both.
+
+For now, you need to write your own "rollup.config.js" file. See
+L<https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/rollup>
+for a working example.
 
 =head1 MIGRATING FROM ASSETPACK
 
