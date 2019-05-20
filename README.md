@@ -5,7 +5,7 @@ Mojolicious::Plugin::Webpack - Mojolicious ♥ Webpack
 # SYNOPSIS
 
 Check out
-[https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example](https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example)
+[https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/webpack](https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/webpack)
 for a working example.
 
 ## Define assets
@@ -92,8 +92,31 @@ developer tool. This point is emphasized by installing a "shim" so your
 application does not depend on this plugin at all when running in production.
 See ["PLUGIN SHIM" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder#PLUGIN-SHIM) for more information.
 
-Note that [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is currently EXPERIMENTAL, and
-changes might come without a warning.
+There is also support for [https://rollupjs.org/](https://rollupjs.org/). See ["Rollup"](#rollup) for more
+information.
+
+[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is currently EXPERIMENTAL, but it's unlikely it
+will change dramatically.
+
+After creating the file, you can run the command below to get a development
+server:
+
+    $ perl myapp.pl webpack -c rollup.config.js
+
+If you want to do ["Testing"](#testing), you have to set the environment variable
+`MOJO_WEBPACK_CONFIG` in addition to [TEST\_BUILD\_ASSETS](https://metacpan.org/pod/TEST_BUILD_ASSETS):
+
+    $ENV{MOJO_WEBPACK_CONFIG} = 'rollup.config.js';
+
+## Rollup
+
+[rollup.js](https://rollupjs.org/) is an alternative to Webpack. Both
+accomplish more or less the same thing, but in different ways. There might be a
+"Rollup" plugin in the future, but for now this plugin supports both.
+
+For now, you need to write your own "rollup.config.js" file. See
+[https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/rollup](https://github.com/jhthorsen/mojolicious-plugin-webpack/tree/master/example/rollup)
+for a working example.
 
 # MIGRATING FROM ASSETPACK
 
