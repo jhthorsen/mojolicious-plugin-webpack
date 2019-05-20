@@ -7,10 +7,6 @@ import {terser} from 'rollup-plugin-terser';
 // <%= asset 'example.css' %>
 import html from 'rollup-plugin-bundle-html';
 
-// Optional, but will reload the browser when the JavaScript files
-// are changed
-import livereload from 'rollup-plugin-livereload';
-
 // This example app use https://svelte.dev/, so we need to load that plugin
 import svelte from 'rollup-plugin-svelte';
 
@@ -23,7 +19,6 @@ function outPath(fn) {
 }
 
 // Replace "example" with whatever you want the asset to be named
-
 export default {
   input: 'assets/main.js',
   output: {
@@ -47,7 +42,6 @@ export default {
 
     resolve(),
     commonjs(),
-    !production && livereload('public'),
     production && terser(),
 
     html({
