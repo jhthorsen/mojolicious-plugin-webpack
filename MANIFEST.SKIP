@@ -71,8 +71,10 @@
 \.perltidyrc
 \.ship.conf
 \.travis.yml
+\.vstags
 node_modules
-example/public/asset
+example/rollup/public/asset
+example/webpack/public/asset
 t/generate
 t/package-lock\.json
 t/package\.json
