@@ -208,8 +208,8 @@ See L<Mojolicious::Plugin::Webpack::Builder/PLUGIN SHIM> for more information.
 There is also support for L<https://rollupjs.org/>. See L</Rollup> for more
 information.
 
-Note that L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, and
-changes might come without a warning.
+L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, but it's unlikely it
+will change dramatically.
 
 After creating the file, you can run the command below to get a development
 server:
