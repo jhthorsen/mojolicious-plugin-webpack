@@ -88,7 +88,8 @@ sub _install_node_deps {
 
   for my $preset ('core', @{$self->process}) {
     for my $module (@{$self->dependencies->{$preset} || []}) {
-      next if $package_json->{dependencies}{$module};
+      next                                   if $package_json->{dependencies}{$module};
+      next                                   if $package_json->{devDependencies}{$module};
       warn "[Webpack] npm install $module\n" if DEBUG;
       system npm => install => $module;
       $n++;
