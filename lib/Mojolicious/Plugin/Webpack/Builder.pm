@@ -54,7 +54,7 @@ sub register {
   }
 
   $self->_install_node_deps;
-  $self->_webpack_run($app);
+  $self->_run_webpack($app);
   $self->_install_shim($app) if $config->{shim};
 }
 
@@ -81,7 +81,7 @@ sub _install_node_deps {
   my $n            = 0;
 
   my $CWD = Mojolicious::Plugin::Webpack::CWD->new($package_file->dirname);
-  system qw(npm install) if %{$package_json->{dependencies}};
+  $self->_run_npm('install') if %{$package_json->{dependencies}};
 
   if ($self->dependencies->{core} eq 'rollup') {
     $self->dependencies->{core}
@@ -90,10 +90,9 @@ sub _install_node_deps {
 
   for my $preset ('core', @{$self->process}) {
     for my $module (@{$self->dependencies->{$preset} || []}) {
-      next                                   if $package_json->{dependencies}{$module};
-      next                                   if $package_json->{devDependencies}{$module};
-      warn "[Webpack] npm install $module\n" if DEBUG;
-      system npm => install => $module;
+      next if $package_json->{dependencies}{$module};
+      next if $package_json->{devDependencies}{$module};
+      $self->_run_npm(install => $module);
       $n++;
     }
   }
@@ -224,7 +223,14 @@ sub _render_to_file {
   return $self->{files}{$name} = [generated => $out_file];
 }
 
-sub _webpack_run {
+sub _run_npm {
+  my ($self, @args) = @_;
+  my $npm = $ENV{MOJO_NPM_BINARY} || 'npm';
+  warn "[Webpack] $npm @args\n" if DEBUG;
+  system $npm => @args;
+}
+
+sub _run_webpack {
   my ($self, $app) = @_;
 
   my $env = $self->_webpack_environment;
@@ -263,7 +269,7 @@ package    # hide from pause
   Mojolicious::Plugin::Webpack::CWD;
 
 sub new { _chdir(bless([$_[2] || Mojo::File->new->to_string], $_[0]), $_[1]) }
-sub _chdir { chdir $_[1] or die "[Webpack] chdir $_[1]: $!"; $_[0] }
+sub _chdir  { chdir $_[1] or die "[Webpack] chdir $_[1]: $!"; $_[0] }
 sub DESTROY { $_[0]->_chdir($_[0]->[0]) }
 
 1;
@@ -286,6 +292,36 @@ by L<Mojolicious::Plugin::Webpack>, so you do not have to register it yourself.
 
 Note that it is I<not> a typo in examples below where C<Webpack> is the first
 argument to L<Mojolicious/plugin>.
+
+=head1 ENVIRONMENT VARIABLES
+
+All the environment variables below are experimental and subject to change.
+
+=head2 MOJO_NPM_BINARY
+
+Default value is "npm", but you can set it to another value, such as "pnpm",
+if you like L<https://pnpm.js.org/> better.
+
+=head2 MOJO_WEBPACK_BINARY
+
+Used to instruct which "webpack" binary to run. Will defaul to either
+"node_modules/.bin/webpack" or "node_modules/.bin/rollup", based on
+L</MOJO_WEBPACK_CONFIG>.
+
+=head2 MOJO_WEBPACK_CONFIG
+
+Defaults to C<webpack.config.js>, but can be set to another config file, such
+as C<rollup.config.js>.
+
+=head2 MOJO_WEBPACK_REINSTALL
+
+Set this variable if you already have a C<node_modules/> directory, but you
+want C<npm install> to be run again.
+
+=head2 MOJO_WEBPACK_VERBOSE
+
+Set this variable to pass on C<--progress>, C<--profile> and C<--verbose> to
+"webpack".
 
 =head1 PLUGIN SHIM
 

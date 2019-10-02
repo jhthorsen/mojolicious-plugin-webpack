@@ -165,8 +165,8 @@ C<mojo webpack>, which is an alternative to C<morbo>:
   $ mojo webpack -h
   $ mojo webpack ./myapp.pl
 
-However if you want to use another daemon and make C<webpack> run, you need to
-set the C<MOJO_WEBPACK_BUILD> environment variable to "1". Example:
+However if you want to use another daemon and force C<webpack> to run, you need
+to set the C<MOJO_WEBPACK_BUILD> environment variable to "1". Example:
 
   MOJO_WEBPACK_BUILD=1 ./myapp.pl daemon
 

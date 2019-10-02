@@ -1,6 +1,7 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
 0.10 Not Released
+ - Add support for custom "npm" binary
  - Need to look in "devDependencies" as well to skip install of node module
  - Will only install modules once
 
