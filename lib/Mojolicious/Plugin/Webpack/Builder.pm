@@ -73,13 +73,15 @@ sub _build_custom_file {
 }
 
 sub _install_node_deps {
+  return if -d 'node_modules' and !$ENV{MOJO_WEBPACK_REINSTALL};
+
   my $self         = shift;
   my $package_file = $self->{files}{'package.json'}[1];
   my $package_json = Mojo::JSON::decode_json($package_file->slurp);
   my $n            = 0;
 
   my $CWD = Mojolicious::Plugin::Webpack::CWD->new($package_file->dirname);
-  system qw(npm install) if %{$package_json->{dependencies}} and !-d 'node_modules';
+  system qw(npm install) if %{$package_json->{dependencies}};
 
   if ($self->dependencies->{core} eq 'rollup') {
     $self->dependencies->{core}
