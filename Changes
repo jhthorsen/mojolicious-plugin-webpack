@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+0.11 Not Released
+ - Will skip entries in generated HTML file that does not match current mode.
+
 0.10 2019-10-02T15:35:43+0900
  - Add support for custom "npm" binary
  - Need to look in "devDependencies" as well to skip install of node module
