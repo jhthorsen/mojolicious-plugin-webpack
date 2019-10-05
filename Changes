@@ -1,6 +1,6 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
-0.11 Not Released
+0.11 2019-10-05T22:12:07+0900
  - Will skip entries in generated HTML file that does not match current mode.
 
 0.10 2019-10-02T15:35:43+0900
