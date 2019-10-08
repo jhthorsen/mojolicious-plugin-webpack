@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+0.12 2019-10-07T07:02:11+0900
+ - Renamed every ".dev." file to ".development." #2
+
 0.11 2019-10-05T22:12:07+0900
  - Will skip entries in generated HTML file that does not match current mode.
 
