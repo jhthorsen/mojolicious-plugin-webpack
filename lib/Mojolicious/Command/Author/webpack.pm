@@ -55,7 +55,8 @@ sub _parse_argv {
     'l|listen=s'  => \my @listen,
     'm|mode=s'    => \$ENV{MOJO_MODE},
     'v|verbose'   => \$ENV{MORBO_VERBOSE},
-    'w|watch=s'   => \my @watch;
+    'w|watch=s'   => \my @watch,
+    'r|rebuild'   => \$ENV{MOJO_WEBPACK_REINSTALL};
 
   # Need to run "mojo webpack" and not "./myapp.pl webpack" to have a clean environment
   $self->_exec_mojo_webpack($self->_script_name, @orig_argv) if path($self->_script_name)->basename ne 'mojo';
