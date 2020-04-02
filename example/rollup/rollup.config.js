@@ -1,11 +1,11 @@
 import commonjs from 'rollup-plugin-commonjs';
-import resolve from 'rollup-plugin-node-resolve';
+import resolve from '@rollup/plugin-node-resolve';
 import {terser} from 'rollup-plugin-terser';
 
 // The html plugin generates a file that M::P::Webpack reads to generate the
 // correct output when calling <%= asset 'example.js' %> and
 // <%= asset 'example.css' %>
-import html from 'rollup-plugin-bundle-html';
+const html = require('@rollup/plugin-html');
 
 // This example app use https://svelte.dev/, so we need to load that plugin
 import svelte from 'rollup-plugin-svelte';
@@ -45,10 +45,7 @@ export default {
     production && terser(),
 
     html({
-      dest,
-      filename: 'webpack.' + (production ? 'production' : 'development') + '.html',
-      inject: 'head',
-      template: '<html><head></head><body></body></html>',
+      fileName: 'webpack.' + (production ? 'production' : 'development') + '.html',
     }),
   ],
   watch: {

@@ -1,12 +1,29 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
-use FindBin;
-BEGIN { unshift @INC, "$FindBin::Bin/../../lib" }
+use Mojo::File 'curfile';
+require lib;
 
-plugin Webpack =>
-  {process => ['svelte'], dependencies => {core => 'rollup', svelte => [qw(rollup-plugin-svelte svelte)]}};
+$ENV{MOJO_WEBPACK_CONFIG}  = "@{[curfile->sibling('rollup.config.js')]}";
+$ENV{MOJO_WEBPACK_DEBUG}   = 1;
+$ENV{MOJO_WEBPACK_VERBOSE} = 0;
+$ENV{MOJO_WEBPACK_LAZY}    = 0;
+
+my $path = "@{[curfile->dirname->dirname->sibling('lib')]}";
+lib->import($path);
+
+plugin Webpack => {
+  process      => ['svelte'],
+  dependencies => {
+    core   => 'rollup',
+    svelte => [qw(rollup-plugin-svelte svelte)]
+  }
+};
 get '/' => 'index';
-app->start;
+
+{
+  local $ENV{PERL5OPT} = "-I$path";
+  app->start;
+}
 
 __DATA__
 @@ index.html.ep
@@ -14,7 +31,7 @@ __DATA__
 <html>
   <head>
     <title>Mojolicious ♥ Webpack</title>
-    %= asset 'example.css'
+    % # asset 'example.css'
   </head>
   <body>
     <h1>Mojolicious ♥ Rollup</h1>

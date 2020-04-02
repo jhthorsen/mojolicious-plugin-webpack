@@ -1,11 +1,18 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
-use FindBin;
-BEGIN { unshift @INC, "$FindBin::Bin/../../lib" }
+use Mojo::File 'curfile';
+require lib;
+
+my $path = "@{[curfile->dirname->dirname->sibling('lib')]}";
+lib->import($path);
 
 plugin Webpack => {process => [qw(js css sass vue)]};
 get '/'        => 'index';
-app->start;
+
+{
+  local $ENV{PERL5OPT} = "-I$path";
+  app->start;
+}
 
 __DATA__
 @@ index.html.ep

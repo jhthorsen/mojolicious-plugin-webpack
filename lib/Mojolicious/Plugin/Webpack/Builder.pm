@@ -85,7 +85,7 @@ sub _install_node_deps {
 
   if ($self->dependencies->{core} eq 'rollup') {
     $self->dependencies->{core}
-      = [qw(rollup rollup-plugin-node-resolve rollup-plugin-commonjs rollup-plugin-terser rollup-plugin-bundle-html)];
+      = [qw(rollup @rollup/plugin-node-resolve rollup-plugin-commonjs rollup-plugin-terser @rollup/plugin-html)];
   }
 
   for my $preset ('core', @{$self->process}) {
