@@ -3,25 +3,20 @@ use Mojolicious::Lite;
 use Mojo::File 'curfile';
 require lib;
 
-$ENV{MOJO_WEBPACK_CONFIG}  = "@{[curfile->sibling('rollup.config.js')]}";
-$ENV{MOJO_WEBPACK_DEBUG}   = 1;
-$ENV{MOJO_WEBPACK_VERBOSE} = 0;
-$ENV{MOJO_WEBPACK_LAZY}    = 0;
+$ENV{MOJO_WEBPACK_CONFIG} = "@{[curfile->sibling('rollup.config.js')]}";
 
-my $path = "@{[curfile->dirname->dirname->sibling('lib')]}";
-lib->import($path);
+my $lib_path = "@{[curfile->dirname->dirname->sibling('lib')]}";
+lib->import($lib_path);
 
 plugin Webpack => {
-  process      => ['svelte'],
-  dependencies => {
-    core   => 'rollup',
-    svelte => [qw(rollup-plugin-svelte svelte)]
-  }
+  process => ['svelte'],
+  dependencies =>
+    {core => 'rollup', svelte => [qw(rollup-plugin-svelte svelte)]}
 };
 get '/' => 'index';
 
 {
-  local $ENV{PERL5OPT} = "-I$path";
+  local $ENV{PERL5OPT} = "-I$lib_path";
   app->start;
 }
 

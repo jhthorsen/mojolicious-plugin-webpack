@@ -1,0 +1,66 @@
+=encoding utf8
+
+=head1 Webpack Example - Rollup/Svelte Demo
+
+This example demonstrates using L<rollup.js|https://rollupjs.org> for a
+L<svelte.js|http://sveltejs.com> app.
+
+=head1 Running the Example
+
+The example only requires the dependencies to be installed and a clone of the
+`Mojolicious::Plugin::Webpack` code.
+
+=head2 Carton
+
+With L<Carton> installed from CPAN, the example is most easily started,
+beginning in the `example/rollup` directory, by following:
+
+  $ carton install
+  $ carton exec ./lite.pl webpack
+  Server available at http://127.0.0.1:3000
+
+The example can be viewed by visiting the listed L<URL|http://127.0.0.1:3000> in
+a browser.
+
+=head2 perlbrew and cpanm
+
+With L<perlbrew|App::perlbrew> and L<cpanm> installed from CPAN, the example
+is most easily started, beginning in the `mojolicious-plugin-webpack` directory,
+by following:
+
+  $ cpanm --installdeps -n -q .
+  $ cd example/rollup
+  $ ./lite.pl webpack
+  Server available at http://127.0.0.1:3000
+
+The example can be viewed by visiting the listed L<URL|http://127.0.0.1:3000> in
+a browser.
+
+=head1 Environment Variables
+
+As documented in L<Mojolicious::Plugin::Webpack::Builder> the following
+environment variables influence the behaviour of the `lite.pl` application.
+
+=over 4
+
+=item MOJO_NPM_BINARY
+
+=item MOJO_WEBPACK_BINARY
+
+=item MOJO_WEBPACK_CONFIG
+
+=item MOJO_WEBPACK_REINSTALL
+
+=item MOJO_WEBPACK_VERBOSE
+
+This should not be used for this example. An error will result, similar to
+
+  (!) You have passed an unrecognized option
+  Unknown CLI flag: ...
+
+=back
+
+Additionally, C<MOJO_WEBPACK_DEBUG> may be set to a true value to increase the
+level of diagnostic messages displayed.
+
+=cut
