@@ -197,8 +197,56 @@ file like "build-assets.t":
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Webpack> is a L<Mojolicious> plugin to make it easier to
-work with L<https://webpack.js.org/>. There is also support for
-L<https://rollupjs.org/>. See L</Rollup> for more information.
+work with L<https://webpack.js.org/>. This plugin will...
+
+=over 2
+
+=item 1.
+
+Generate a minimal C<package.json> and a Webpack config file. Doing this
+manually is possible, but it can be quite time consuming to figure out all the
+bits and pieces if you are not already familiar with Webpack.
+
+  ./package.json
+  ./webpack.config.js
+
+=item 2.
+
+Generate a C<webpack.custom.js> which is meant to be the end user config file
+where you can override any part of the default config. You are free to modify
+C<webpack.config.js> directly, but doing so will prevent
+L<Mojolicious::Plugin::Webpack> from patching it in the future.
+
+The default C<webpack.custom.js> file will simply define an "entry" which is
+the starting point of your application.
+
+  ./assets/webpack.custom.js
+
+=item 3.
+
+Generate an entry file, which is the starting point of your client side
+application. The entry file can load JavaScript, CSS, SASS, ... as long as the
+appropriate processing plugin is loaded by Webpack.
+
+  ./assets/my_app.js
+
+=item 4.
+
+It can be difficult to know exactly which plugins to use with Webpack. Because
+of this, L<Mojolicious::Plugin::Webpack> has some predefined rules for which
+Nodejs dependencies to fetch and  install. None of the nodejs modules are
+required in production though, so it will only be installed while developing.
+
+=item 5.
+
+While developing, the webpack executable will be started automatically next to
+L<Mojo::Server::Morbo>. Webpack will be started with the appropriate switches
+to watch your source files and re-compile on change.
+
+=back
+
+There is also support for L<https://rollupjs.org/>. See L</Rollup> for more
+information.
 
 L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, but it's unlikely it
 will change dramatically.
