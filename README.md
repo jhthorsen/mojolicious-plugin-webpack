@@ -28,7 +28,7 @@ the `webpack.custom.js` file.
 
 ## Application
 
-Your lite or full app, need to load [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) and
+Your lite or full app, need to load [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) and
 tell it what kind of assets it should be able to process:
 
     $app->plugin(Webpack => {process => [qw(js css)]});
@@ -86,16 +86,44 @@ file like "build-assets.t":
 
 # DESCRIPTION
 
-[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is a [Mojolicious](https://metacpan.org/pod/Mojolicious) plugin to make it easier to
-work with [https://webpack.js.org/](https://webpack.js.org/). This means that this is mostly a
-developer tool. This point is emphasized by installing a "shim" so your
-application does not depend on this plugin at all when running in production.
-See ["PLUGIN SHIM" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder#PLUGIN-SHIM) for more information.
+[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) is a [Mojolicious](https://metacpan.org/pod/Mojolicious) plugin to make it easier to
+work with [https://webpack.js.org/](https://webpack.js.org/). This plugin will...
+
+1. Generate a minimal `package.json` and a Webpack config file. Doing this
+manually is possible, but it can be quite time consuming to figure out all the
+bits and pieces if you are not already familiar with Webpack.
+
+        ./package.json
+        ./webpack.config.js
+
+2. Generate a `webpack.custom.js` which is meant to be the end user config file
+where you can override any part of the default config. You are free to modify
+`webpack.config.js` directly, but doing so will prevent
+[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) from patching it in the future.
+
+    The default `webpack.custom.js` file will simply define an "entry" which is
+    the starting point of your application.
+
+        ./assets/webpack.custom.js
+
+3. Generate an entry file, which is the starting point of your client side
+application. The entry file can load JavaScript, CSS, SASS, ... as long as the
+appropriate processing plugin is loaded by Webpack.
+
+        ./assets/my_app.js
+
+4. It can be difficult to know exactly which plugins to use with Webpack. Because
+of this, [Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) has some predefined rules for which
+Nodejs dependencies to fetch and  install. None of the nodejs modules are
+required in production though, so it will only be installed while developing.
+5. While developing, the webpack executable will be started automatically next to
+[Mojo::Server::Morbo](https://metacpan.org/pod/Mojo%3A%3AServer%3A%3AMorbo). Webpack will be started with the appropriate switches
+to watch your source files and re-compile on change.
 
 There is also support for [https://rollupjs.org/](https://rollupjs.org/). See ["Rollup"](#rollup) for more
 information.
 
-[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) is currently EXPERIMENTAL, but it's unlikely it
+[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) is currently EXPERIMENTAL, but it's unlikely it
 will change dramatically.
 
 After creating the file, you can run the command below to get a development
@@ -120,8 +148,8 @@ for a working example.
 
 # MIGRATING FROM ASSETPACK
 
-Are you already a user of [Mojolicious::Plugin::AssetPack](https://metacpan.org/pod/Mojolicious::Plugin::AssetPack)?
-[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious::Plugin::Webpack) will automatically detect your `assetpack.def`
+Are you already a user of [Mojolicious::Plugin::AssetPack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AAssetPack)?
+[Mojolicious::Plugin::Webpack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack) will automatically detect your `assetpack.def`
 file and convert it into a custom webpack config, so you don't have to do
 much, except changing how you load the plugin:
 
@@ -149,8 +177,8 @@ much, except changing how you load the plugin:
     %= asset(url_for => "cool_beans.css")
 
 This helper will return the plugin instance if no arguments is passed in, or a
-HTML tag created with either ["javascript" in Mojolicious::Plugin::TagHelpers](https://metacpan.org/pod/Mojolicious::Plugin::TagHelpers#javascript) or
-["stylesheet" in Mojolicious::Plugin::TagHelpers](https://metacpan.org/pod/Mojolicious::Plugin::TagHelpers#stylesheet) if a valid asset name is passed
+HTML tag created with either ["javascript" in Mojolicious::Plugin::TagHelpers](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3ATagHelpers#javascript) or
+["stylesheet" in Mojolicious::Plugin::TagHelpers](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3ATagHelpers#stylesheet) if a valid asset name is passed
 in.
 
 You can also use it to call a method and pass on `$c` by passing in a method
@@ -162,7 +190,7 @@ name as the first argument, such as ["url\_for"](#url_for).
 
     $path = $self->assets_dir;
 
-Holds a [Mojo::File](https://metacpan.org/pod/Mojo::File) object pointing to the private directoy where source
+Holds a [Mojo::File](https://metacpan.org/pod/Mojo%3A%3AFile) object pointing to the private directoy where source
 files are read from. Defaults value is:
 
     $app->home->rel_file("assets");
@@ -181,7 +209,7 @@ assets or generate readable output while developing.
 
     $path = $self->out_dir;
 
-Holds a [Mojo::File](https://metacpan.org/pod/Mojo::File) object pointing to the public directoy where processed
+Holds a [Mojo::File](https://metacpan.org/pod/Mojo%3A%3AFile) object pointing to the public directoy where processed
 assets are written to. Default value is:
 
     $app->static->paths->[0] . "/asset";
@@ -190,7 +218,7 @@ assets are written to. Default value is:
 
     $route = $self->route;
 
-Holds a [Mojolicious::Routes::Route](https://metacpan.org/pod/Mojolicious::Routes::Route) object that generates the URLs to a
+Holds a [Mojolicious::Routes::Route](https://metacpan.org/pod/Mojolicious%3A%3ARoutes%3A%3ARoute) object that generates the URLs to a
 processed asset. Default value is `/asset/*name`.
 
 # METHODS
@@ -203,7 +231,7 @@ processed asset. Default value is `/asset/*name`.
 Used to register this plugin into your [Mojolicious](https://metacpan.org/pod/Mojolicious) app.
 
 The `%config` passed when loading this plugin can have any of the
-["ATTRIBUTES" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder#ATTRIBUTES), in addition to these
+["ATTRIBUTES" in Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack%3A%3ABuilder#ATTRIBUTES), in addition to these
 attributes:
 
 - helper
@@ -216,7 +244,7 @@ attributes:
 
     $url = $self->url_for($c, $asset_name);
 
-Returns a [Mojo::URL](https://metacpan.org/pod/Mojo::URL) for a given asset.
+Returns a [Mojo::URL](https://metacpan.org/pod/Mojo%3A%3AURL) for a given asset.
 
 # AUTHOR
 
@@ -231,6 +259,6 @@ the terms of the Artistic License version 2.0.
 
 # SEE ALSO
 
-[Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious::Plugin::Webpack::Builder).
+[Mojolicious::Plugin::Webpack::Builder](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebpack%3A%3ABuilder).
 
-[Mojolicious::Plugin::AssetPack](https://metacpan.org/pod/Mojolicious::Plugin::AssetPack).
+[Mojolicious::Plugin::AssetPack](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AAssetPack).
