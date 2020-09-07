@@ -1,6 +1,7 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
 0.13 Not Released
+ - Fix "sass-loader" options #4
  - Removed support for "shim"
  - Improved documentation
 
