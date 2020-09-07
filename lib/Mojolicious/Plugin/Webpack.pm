@@ -18,12 +18,6 @@ sub route      { shift->{route} }
 
 sub register {
   my ($self, $app, $config) = @_;
-
-  # If running inside a shim
-  return $app->plugin('Mojolicious::Plugin::Webpack' => $config)
-    unless $ENV{MOJO_WEBPACK_TEST_INTERNAL}
-    or $self->isa('Mojolicious::Plugin::Webpack');
-
   $self->{route} = $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
 
   $self->{$_} = path $config->{$_} for grep { $config->{$_} } qw(assets_dir out_dir);
@@ -73,7 +67,7 @@ sub _build_out_dir {
 
 sub _helper {
   my ($self, $c, $name, @args) = @_;
-  return $self if @_ == 2;
+  return $self                   if @_ == 2;
   return $self->$name($c, @args) if $name =~ m!^\w+$!;
 
   $self->_register_assets if LAZY;    # Lazy read the generated markup
@@ -98,13 +92,13 @@ sub _register_assets {
   my $name_re = qr{(.*)\.\w+\.(css|js)$}i;
 
   $markup->find('link')->each(sub {
-    my $name        = shift->{href} // '';
+    my $name = shift->{href} // '';
     my $file_is_dev = $name =~ m!development! ? 1 : 0;
     $self->{assets}{"$1.$2"} = [stylesheet => {name => $name}] if $is_dev == $file_is_dev and $name =~ $name_re;
   });
 
   $markup->find('script')->each(sub {
-    my $name        = shift->{src} // '';
+    my $name = shift->{src} // '';
     my $file_is_dev = $name =~ m!development! ? 1 : 0;
     $self->{assets}{"$1.$2"} = [javascript => {name => $name}] if $is_dev == $file_is_dev and $name =~ $name_re;
   });
@@ -203,13 +197,8 @@ file like "build-assets.t":
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Webpack> is a L<Mojolicious> plugin to make it easier to
-work with L<https://webpack.js.org/>. This means that this is mostly a
-developer tool. This point is emphasized by installing a "shim" so your
-application does not depend on this plugin at all when running in production.
-See L<Mojolicious::Plugin::Webpack::Builder/PLUGIN SHIM> for more information.
-
-There is also support for L<https://rollupjs.org/>. See L</Rollup> for more
-information.
+work with L<https://webpack.js.org/>. There is also support for
+L<https://rollupjs.org/>. See L</Rollup> for more information.
 
 L<Mojolicious::Plugin::Webpack> is currently EXPERIMENTAL, but it's unlikely it
 will change dramatically.

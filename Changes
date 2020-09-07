@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+0.13 Not Released
+ - Removed support for "shim"
+
 0.12 2019-10-07T07:02:11+0900
  - Renamed every ".dev." file to ".development." #2
 
