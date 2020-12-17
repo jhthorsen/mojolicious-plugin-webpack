@@ -18,7 +18,7 @@ sub route      { shift->{route} }
 
 sub register {
   my ($self, $app, $config) = @_;
-  $self->{route} = $app->routes->route('/asset/*name')->via(qw(HEAD GET))->name('webpack.asset');
+  $self->{route} = $app->routes->any('/asset/*name')->methods(qw(HEAD GET))->name('webpack.asset');
 
   $self->{$_} = path $config->{$_} for grep { $config->{$_} } qw(assets_dir out_dir);
   $self->{node_env} = $config->{node_env} || ($app->mode eq 'development' ? 'development' : 'production');
