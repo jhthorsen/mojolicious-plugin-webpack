@@ -1,8 +1,60 @@
-<!DOCTYPE html>
-<html>
-  <head><title>Webpack</title><link href="myapp.development.css" rel="stylesheet"><script type="text/javascript" src="myapp.development.js"></script></head>
-  <body>
-    <h1>Webpack output files</h1>
-    <p>This file has all the generated assets in &lt;head></p>
-  </body>
-</html>
+<head><script src="myapp.development.js"></script></head>Html Webpack Plugin:
+<pre>
+  Error: Child compilation failed:
+  Module not found: Error: Can't resolve '/Users/daniel/mojolicious-plugin-webpack/t/assets/webpack.html' in '/Users/daniel/moj  olicious-plugin-webpack/t':
+  Error: Can't resolve '/Users/daniel/mojolicious-plugin-webpack/t/assets/webpack.html' in '/Users/daniel/mojolicious-plugin-we  bpack/t'
+  ModuleNotFoundError: Module not found: Error: Can't resolve '/Users/daniel/mojolicious-plugin-webpack/t/assets/webpack.html'   in '/Users/daniel/mojolicious-plugin-webpack/t'
+  
+  - Compilation.js:1570 
+    [t]/[webpack]/lib/Compilation.js:1570:28
+  
+  - NormalModuleFactory.js:648 
+    [t]/[webpack]/lib/NormalModuleFactory.js:648:13
+  
+  
+  - NormalModuleFactory.js:233 
+    [t]/[webpack]/lib/NormalModuleFactory.js:233:22
+  
+  
+  - NormalModuleFactory.js:357 
+    [t]/[webpack]/lib/NormalModuleFactory.js:357:22
+  
+  - NormalModuleFactory.js:116 
+    [t]/[webpack]/lib/NormalModuleFactory.js:116:11
+  
+  - NormalModuleFactory.js:577 
+    [t]/[webpack]/lib/NormalModuleFactory.js:577:24
+  
+  - NormalModuleFactory.js:721 
+    [t]/[webpack]/lib/NormalModuleFactory.js:721:5
+  
+  - Resolver.js:296 finishWithoutResolve
+    [t]/[enhanced-resolve]/lib/Resolver.js:296:11
+  
+  - child-compiler.js:131 
+    [t]/[html-webpack-plugin]/lib/child-compiler.js:131:18
+  
+  - Compiler.js:511 
+    [t]/[webpack]/lib/Compiler.js:511:11
+  
+  - Compiler.js:1059 
+    [t]/[webpack]/lib/Compiler.js:1059:17
+  
+  
+  - Hook.js:18 Hook.CALL_ASYNC_DELEGATE [as _callAsync]
+    [t]/[tapable]/lib/Hook.js:18:14
+  
+  - Compiler.js:1055 
+    [t]/[webpack]/lib/Compiler.js:1055:33
+  
+  - Compilation.js:2121 
+    [t]/[webpack]/lib/Compilation.js:2121:10
+  
+  
+  - Hook.js:18 Hook.CALL_ASYNC_DELEGATE [as _callAsync]
+    [t]/[tapable]/lib/Hook.js:18:14
+  
+  - Compilation.js:2114 
+    [t]/[webpack]/lib/Compilation.js:2114:37
+  
+</pre>

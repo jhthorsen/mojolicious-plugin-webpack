@@ -14,9 +14,9 @@ our $VERSION = $Mojolicious::Plugin::Webpack::VERSION || '0.01';
 
 has dependencies => sub {
   return {
-    core => [qw(webpack webpack-cli webpack-plugin-hash-output html-webpack-plugin)],
-    css  => [qw(css-loader mini-css-extract-plugin optimize-css-assets-webpack-plugin)],
-    js   => [qw(@babel/core @babel/preset-env babel-loader terser-webpack-plugin)],
+    core => [qw(webpack webpack-cli html-webpack-plugin@next)],
+    css  => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin)],
+    js   => [qw(@babel/core @babel/preset-env babel-loader)],
     sass => [qw(node-sass sass-loader)],
     vue  => [qw(vue vue-loader vue-template-compiler)],
   };
@@ -51,7 +51,7 @@ sub register {
   else {
     $self->_render_to_file($app, 'webpack.config.js');
     $self->_render_to_file($app, 'webpack.custom.js', $self->_custom_file);
-    $self->_render_to_file($app, 'my_app.js', $self->assets_dir->child('my_app.js'))
+    $self->_render_to_file($app, 'my_app.js',         $self->assets_dir->child('my_app.js'))
       if $self->{files}{'webpack.custom.js'}[0] eq 'generated';
   }
 
@@ -305,8 +305,8 @@ it depends on. Example:
 
   $app->plugin("Webpack" => {
     dependencies => {
-      css  => [qw(css-loader mini-css-extract-plugin optimize-css-assets-webpack-plugin)],
-      js   => [qw(@babel/core @babel/preset-env babel-loader terser-webpack-plugin)],
+      css  => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin)],
+      js   => [qw(@babel/core @babel/preset-env babel-loader)],
       sass => [qw(node-sass sass-loader)],
     }
   });
