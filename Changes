@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+0.14 Not Released
+ - Fix route warnings issued by latest Mojolicious
+
 0.13 2020-09-07T10:10:24+0900
  - Fix "sass-loader" options #4
  - Removed support for "shim"
