@@ -8,6 +8,9 @@ $ENV{TEST_MOJO_WEBPACK} = 1;
 
 my $remove_tree = $ENV{TEST_CONTINUE} ? sub { } : 'remove_tree';
 chdir(my $work_dir = path(local => path($0)->basename)->tap($remove_tree)->make_path) or die $!;
+note "work_dir=$work_dir";
+
+sub maybe (&) { local $TODO = 'TEST_CONTINUE=1' if $ENV{TEST_CONTINUE}; shift->(); }
 
 subtest 'basic' => sub {
   my $webpack = Mojo::Alien::webpack->new;
@@ -17,7 +20,7 @@ subtest 'basic' => sub {
   is $webpack->npm->config->dirname, $webpack->config->dirname, 'npm config location' or diag $webpack->config;
 
   isa_ok $webpack->config, 'Mojo::File', 'config';
-  ok !-e $webpack->config, 'config';
+  maybe { ok !-e $webpack->config, 'config' };
 
   is $webpack->pid, 0, 'pid';
   is $webpack->stop, $webpack, 'stop';

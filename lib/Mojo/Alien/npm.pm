@@ -4,7 +4,7 @@ use Mojo::Base -base;
 use Carp qw(croak);
 use File::chdir;
 use Mojo::File qw(path);
-use Mojo::JSON qw(decode_json);
+use Mojo::JSON qw(decode_json false);
 
 use constant DEBUG => ($ENV{MOJO_NPM_DEBUG} || $ENV{MOJO_WEBPACK_DEBUG}) && 1;
 
@@ -15,6 +15,26 @@ has command => sub {
 
 has config => sub { path->to_abs->child('package.json') };
 has mode   => sub { $ENV{NODE_ENV} || 'development' };
+
+sub dependencies {
+  my $self = shift;
+  croak "Can't get dependency info without package.json" unless -r $self->config;
+
+  my $NPM          = $self->_run(qw(ls --json --parseable --silent));
+  my $dependencies = decode_json(join '', <$NPM>)->{dependencies} || {};
+
+  my $package = decode_json $self->config->slurp;
+  my %types   = (devDependencies => 'dev', dependencies => 'prod', optionalDependencies => 'optional');
+  for my $type (qw(optionalDependencies devDependencies dependencies)) {
+    for my $name (keys %{$package->{$type}}) {
+      $dependencies->{$name}{required} = $package->{$type}{$name};
+      $dependencies->{$name}{type}     = $types{$type};
+      $dependencies->{$name}{version} //= '';
+    }
+  }
+
+  return $dependencies;
+}
 
 sub init {
   my $self = shift;
@@ -36,25 +56,6 @@ sub install {
   my $type = sprintf '--save-%s', $info->{type} || 'dev';
   $self->_run('install', $name, $type);
   return $self;
-}
-
-sub dependency_info {
-  my ($self, $name) = @_;
-  croak "Can't get dependency info without package.json" unless -r $self->config;
-
-  my $node_modules = $self->config->dirname->child('node_modules');
-  return undef unless -d $node_modules;
-
-  my ($package, $v) = ($self->_package);
-  return {type => 'prod',     version => $v} if $v = $package->{dependencies}{$name};
-  return {type => 'dev',      version => $v} if $v = $package->{devDependencies}{$name};
-  return {type => 'optional', version => $v} if $v = $package->{optionalDependencies}{$name};
-  return undef;
-}
-
-sub _package {
-  my $self = shift;
-  return $self->{package} ||= decode_json $self->config->slurp;
 }
 
 sub _run {
@@ -117,17 +118,21 @@ environment variable when calling "npm".
 
 =head1 METHODS
 
-=head2 dependency_info
+=head2 dependencies
 
-  $info = $npm->dependency_info('package-name');
+  $dependencies = $npm->dependencies;
 
-Used to get information from L</config> about a given package. This will return
-C<undef> if the pacakge is unknown or if L</install> has not yet been called.
-C<$info> will look like this:
+Used to get dependencies from L</config> combined with information from
+C<npm ls>. The returned hash-ref looks like this:
 
   {
-    type => 'prod',     # "dev", "optional" or "prod"
-    version => '0.1.2', # the version from package.json
+    "package-name" => {
+      required => $str,  # version from package.json
+      type     => $str,  # dev, optional or prod
+      version  => $str,  # installed version
+      ...
+    },
+    ...
   }
 
 =head2 init
