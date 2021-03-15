@@ -74,6 +74,20 @@ sub build {
   return $self;
 }
 
+sub exec {
+  my $self = shift;
+  my @cmd  = ($self->_cmd_build, '--watch');
+  my $home = $self->config->dirname->to_string;
+
+  chdir $home or die "Can't chdir to $home: $!";
+  $ENV{NODE_ENV}           = $self->mode;
+  $ENV{WEBPACK_ASSETS_DIR} = $self->assets_dir->to_string;
+  $ENV{WEBPACK_OUT_DIR}    = $self->out_dir->to_string;
+  $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
+  { CORE::exec(@cmd) }
+  die "Can't exec @cmd: $!";
+}
+
 sub init {
   my $self = shift;
 
@@ -136,19 +150,8 @@ sub watch {
 
   my @cmd = ($self->_cmd_build, '--watch');
   croak "Can't fork: $!" unless defined(my $pid = fork);
-
-  # Parent
-  return $self if $self->{pid} = $pid;
-
-  # Child
-  chdir $home or die "Can't chdir to $home: $!";
-  $ENV{NODE_ENV}           = $self->mode;
-  $ENV{WEBPACK_ASSETS_DIR} = $self->assets_dir->to_string;
-  $ENV{WEBPACK_INCLUDE}    = $self->{env_include} || '';
-  $ENV{WEBPACK_OUT_DIR}    = $self->out_dir->to_string;
-  $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
-  { exec @cmd }
-  die "Can't run @cmd: $!";
+  return $self if $self->{pid} = $pid;    # Parent
+  return $self->exec;                     # Child
 }
 
 sub _cmd_build {
@@ -166,7 +169,7 @@ sub _cmd_build {
 
 sub _config_include_dir   { shift->assets_dir->child('webpack.config.d') }
 sub _config_template_name {'webpack.config.js'}
-sub _d                    { my ($self, $format) = (shift, shift); warn sprintf "[Webpack] $format\n", @_ }
+sub _d                    { my ($class, $format) = (shift, shift); warn sprintf "[Webpack] $format\n", @_ }
 
 sub _render_file {
   my ($self, $name, $file, $content) = @_;
@@ -342,6 +345,13 @@ Note that this method is currently EXPERIMENTAL.
   $webpack->build;
 
 Will build the assets or croaks on errors. Automatically calls L</init>.
+
+=head2 exec
+
+  $webpack->exec;
+
+This method will replace the current process, instead of starting webpack
+inside a fork. This method is called by L</watch> inside a fork.
 
 =head2 init
 

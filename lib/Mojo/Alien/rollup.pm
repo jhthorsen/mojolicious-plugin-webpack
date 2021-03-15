@@ -28,6 +28,20 @@ has dependencies => sub {
   };
 };
 
+sub exec {
+  my $self = shift;
+  my @cmd  = ($self->_cmd_build, '--watch');
+  my $home = $self->config->dirname->to_string;
+
+  chdir $home or die "Can't chdir to $home: $!";
+  $ENV{NODE_ENV}          = $self->mode;
+  $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
+  $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
+  $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
+  { exec @cmd }
+  die "Can't exec @cmd: $!";
+}
+
 sub watch {
   my $self = shift;
   return $self if $self->pid;
@@ -37,18 +51,8 @@ sub watch {
 
   my @cmd = ($self->_cmd_build, '--watch');
   croak "Can't fork: $!" unless defined(my $pid = fork);
-
-  # Parent
-  return $self if $self->{pid} = $pid;
-
-  # Child
-  chdir $home or die "Can't chdir to $home: $!";
-  $ENV{NODE_ENV}          = $self->mode;
-  $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
-  $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
-  $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
-  { exec @cmd }
-  die "Can't run @cmd: $!";
+  return $self if $self->{pid} = $pid;    # Parent
+  return $self->exec;                     # Child
 }
 
 sub _cmd_build {
@@ -65,7 +69,7 @@ sub _cmd_build {
 
 sub _config_include_dir   { shift->assets_dir->child('rollup.config.d') }
 sub _config_template_name {'rollup.config.js'}
-sub _d                    { my ($self, $format) = (shift, shift); warn sprintf "[Rollup] $format\n", @_ }
+sub _d                    { my ($class, $format) = (shift, shift); warn sprintf "[Rollup] $format\n", @_ }
 
 sub _run {
   my ($self, @cmd) = @_;
@@ -181,6 +185,10 @@ Note that this method is currently EXPERIMENTAL.
 =head2 build
 
 See L<Mojo::Alien::webpack/build>.
+
+=head2 exec
+
+See L<Mojo::Alien::webpack/exec>.
 
 =head2 init
 
