@@ -47,6 +47,21 @@ has npm => sub {
 
 has out_dir => sub { shift->config->dirname->child('dist') };
 
+sub asset_map {
+  my $self = shift;
+
+  my %assets;
+  for my $path ($self->out_dir->list_tree->each) {
+    my $rel_path = File::Spec->abs2rel($path, $self->out_dir);
+    my $name     = $rel_path;
+    $name =~ s!(.*)\W(\w+)\.(\w+)$!$1.$3!;    # (prefix, checksum, ext)
+    my $mode = ($2 // '') eq 'development' ? 'development' : 'production';
+    $assets{$rel_path} = {ext => lc $3, name => $name, mode => $mode, mtime => $path->stat->mtime, path => $path};
+  }
+
+  return \%assets;
+}
+
 sub build {
   my $self = shift;
   croak "Can't call build() after watch()" if $self->pid;
@@ -144,9 +159,7 @@ sub _cmd_build {
   croak "Can't run $cmd[0]" unless -x $cmd[0];
 
   $self->{basename} ||= path($cmd[0])->basename;
-  $self->{stats}    ||= tempfile;
   push @cmd, '--config' => $self->config->to_string;
-  push @cmd, sprintf '--json=%s', $self->{stats}->to_string;
   push @cmd, qw(--progress --profile --verbose) if $ENV{MOJO_WEBPACK_VERBOSE};
   return @cmd;
 }
@@ -304,6 +317,25 @@ A L<Mojo::Alien::npm> object used by L</init>.
 Location to write output assets to.
 
 =head1 METHODS
+
+=head2 asset_map
+
+  $hash_ref = $webpack->asset_map;
+
+Parses the filenames in L</out_dir> and returns a hash ref with information
+about the generated assets. Example return value:
+
+  {
+    'relatibe/output.development.js' => {            # Key is relative path to out_dir()
+      ext   => 'css',                                # File extension
+      mode  => 'development',                        # or "production"
+      mtime => 1616976114,                           # File modification epoch timestamp
+      name  => 'relative/output.js',                 # Name of asset, without checksum or mode
+      path  => '/path/to/entry-name.development.js', # Absolute path to asset
+    },
+  }
+
+Note that this method is currently EXPERIMENTAL.
 
 =head2 build
 

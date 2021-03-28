@@ -11,12 +11,12 @@ chdir(my $work_dir = path(local => path($0)->basename)->tap($remove_tree)->make_
 my $webpack = Mojo::Alien::webpack->new->include(['css']);
 $webpack->assets_dir->make_path;
 
-my $index_css = $webpack->assets_dir->child('index.css')->spurt(qq[/* built $^T */]);
+my $index_css = $webpack->assets_dir->child('index.css')->spurt(qq[body { background: #fefefe; }\n]);
 my $index_js  = $webpack->assets_dir->child('index.js')->spurt(qq[require('./index.css');]);
 my $dist_file = $webpack->config->dirname->child('dist', 'alien-webpack-css-t.development.css');
 
 is $webpack->build, $webpack, 'build css';
 ok -e $dist_file, 'built';
-like $dist_file->slurp, qr{/\* built $^T}, 'correct content';
+like $dist_file->slurp, qr{background:\s*#fefefe}s, 'correct content';
 
 done_testing;
