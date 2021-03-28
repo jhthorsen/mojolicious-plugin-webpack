@@ -1,0 +1,241 @@
+package Mojo::Alien::rollup;
+use Mojo::Base 'Mojo::Alien::webpack';
+
+use Carp qw(croak);
+use Mojo::File qw(path tempfile);
+use File::chdir;
+
+use constant DEBUG => $ENV{MOJO_ROLLUP_DEBUG} && 1;
+
+has command => sub {
+  my $self = shift;
+  return [$ENV{MOJO_ROLLUP_BINARY}] if $ENV{MOJO_ROLLUP_BINARY};
+  my $bin = $self->config->to_abs->dirname->child(qw(node_modules .bin rollup));
+  $self->_d('%s %s', -e $bin ? 'Found' : 'Not installed', $bin) if DEBUG;
+  return -e $bin ? [$bin->to_string] : ['rollup'];
+};
+
+has config => sub { path->to_abs->child('rollup.config.js') };
+
+has dependencies => sub {
+  return {
+    core => [qw(rollup @rollup/plugin-node-resolve)],
+    css  => [qw(cssnano postcss-preset-env rollup-plugin-postcss)],
+    js   => [qw(@rollup/plugin-commonjs @babel/core @babel/preset-env @rollup/plugin-babel rollup-plugin-terser)],
+  };
+};
+
+sub watch {
+  my $self = shift;
+  return $self if $self->pid;
+
+  my $home = $self->config->dirname->to_string;
+  croak "Can't chdir $home: No such file or directory" unless -d $home;
+
+  my @cmd = ($self->_cmd_build, '--watch');
+  croak "Can't fork: $!" unless defined(my $pid = fork);
+
+  # Parent
+  return $self if $self->{pid} = $pid;
+
+  # Child
+  chdir $home or die "Can't chdir to $home: $!";
+  $ENV{NODE_ENV}          = $self->mode;
+  $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
+  $ENV{ROLLUP_INCLUDE}    = $self->{env_include} || '';
+  $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
+  $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
+  { exec @cmd }
+  die "Can't run @cmd: $!";
+}
+
+sub _cmd_build {
+  my $self = shift;
+  $self->init;
+
+  my @cmd = @{$self->command};
+  croak "Can't run $cmd[0]" unless -x $cmd[0];
+
+  $self->{basename} ||= path($cmd[0])->basename;
+  push @cmd, '--config' => $self->config->to_string;
+  return @cmd;
+}
+
+sub _config_include_dir   {'rollup.config.d'}
+sub _config_template_name {'rollup.config.js'}
+sub _d                    { my ($self, $format) = (shift, shift); warn sprintf "[Rollup] $format\n", @_ }
+
+sub _run {
+  my ($self, @cmd) = @_;
+  local $CWD                    = $self->config->dirname->to_string;
+  local $ENV{NODE_ENV}          = $self->mode;
+  local $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
+  local $ENV{ROLLUP_INCLUDE}    = $self->{env_include};
+  local $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
+  $self->_d('cd %s && %s', $CWD, join ' ', @cmd) if DEBUG;
+  open my $ROLLUP, '-|', @cmd or die "Can't run @cmd: $!";
+  return $ROLLUP if defined wantarray;
+  DEBUG && print while <$ROLLUP>;
+}
+
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+Mojo::Alien::rollup - Runs the external nodejs program rollup
+
+=head1 SYNOPSIS
+
+  use Mojo::Alien::rollup;
+  my $rollup = Mojo::Alien::rollup->new;
+
+  # Run once
+  $rollup->build;
+
+  # Build when rollup see files change
+  $rollup->watch
+
+=head1 DESCRIPTION
+
+L<Mojo::Alien::rollup> is a class for runnig the external nodejs program
+L<rollup|https://rollupjs.org/>.
+
+=head1 ATTRIBUTES
+
+=head2 assets_dir
+
+See L<Mojo::Alien::webpack/assets_dir>.
+
+=head2 command
+
+  $array_ref = $rollup->command;
+  $rollup = $rollup->command(['rollup']);
+
+The path to the rollup executable and any custom arguments that is required
+for L</build> and L</watch>. This variable tries to find rollup in
+"node_modules/" before falling back to just "rollup".
+
+The C<MOJO_ROLLUP_BINARY> environment variable can be set to change the
+default.
+
+=head2 config
+
+  $path = $rollup->config;
+  $rollup = $rollup->config(path->to_abs->child('rollup.config.js'));
+
+Holds an I</absolute> path to
+L<rollup.config.js|https://rollup.js.org/concepts/configuration/>.
+
+=head2 dependencies
+
+  $hash_ref = $rollup->dependencies;
+
+A hash where the keys can match the items in L</include> and the values are
+lists of packages to install. Keys that does I</not> match items in L</include>
+will be ignored. This attribute will be used by L</init>.
+
+These dependencies are predefined:
+
+  babel => [qw(@babel/core @babel/preset-env babel-loader)],
+  css   => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin)],
+  core  => [qw(rollup)],
+  js    => [qw(@rollup/plugin-node-resolve rollup-plugin-commonjs rollup-plugin-terser)],
+
+=head2 include
+
+See L<Mojo::Alien::webpack/include>.
+
+=head2 mode
+
+See L<Mojo::Alien::webpack/mode>.
+
+=head2 npm
+
+See L<Mojo::Alien::webpack/npm>.
+
+=head2 out_dir
+
+See L<Mojo::Alien::webpack/out_dir>.
+
+=head1 METHODS
+
+=head2 asset_map
+
+  $hash_ref = $rollup->asset_map;
+
+Parses the filenames in L</out_dir> and returns a hash ref with information
+about the generated assets. Example return value:
+
+  {
+    'entry-name.js' => '/path/to/entry-name.development.js',
+    'cool-beans.png' => /path/to/f47352684211060f3e34.png',
+  }
+
+Note that this method is currently EXPERIMENTAL.
+
+=head2 build
+
+See L<Mojo::Alien::webpack/build>.
+
+=head2 init
+
+See L<Mojo::Alien::webpack/init>.
+
+=head2 pid
+
+See L<Mojo::Alien::webpack/pid>.
+
+=head2 stop
+
+See L<Mojo::Alien::webpack/stop>.
+
+=head2 watch
+
+See L<Mojo::Alien::webpack/watch>.
+
+=head1 SEE ALSO
+
+L<Mojolicious::Plugin::Webpack> and L<Mojo::Alien::webpack>.
+
+=cut
+
+__DATA__
+@@ package-_rollup-plugin-commonjs.js
+const commonjs = require('@rollup/plugin-commonjs');
+module.exports = function(config) { config.plugins.push(commonjs) };
+@@ package-_rollup_plugin-node-resolve.js
+const resolve = require('@rollup/plugin-node-resolve');
+module.exports = function(config) { config.plugins.push(resolve) };
+@@ package-rollup-plugin-postcss.js
+const cssnano = require('cssnano');
+const postcss = require('rollup-plugin-postcss');
+const postcssPresetEnv = require('postcss-preset-env');
+
+module.exports = function(config) {
+  config.plugins.push(postcss({extract: true, plugins: [postcssPresetEnv(), cssnano()]}));
+};
+@@ rollup.config.js
+const fs = require('fs');
+const pkg = require('./package.json');
+const path = require('path');
+
+const assetsDir = process.env.ROLLUP_ASSETS_DIR || path.resolve(__dirname, 'assets');
+const isDev = process.env.NODE_ENV !== 'production';
+
+const config = {
+  input: path.resolve(assetsDir, 'index.js'),
+  output: {format: 'iife', sourcemap: true},
+  plugins: [],
+  watch: {clearScreen: false},
+};
+
+(process.env.ROLLUP_INCLUDE || '').split(':').forEach(function(name) {
+  if (name) require(path.resolve(assetsDir, 'rollup.config.d', name))(config);
+});
+
+const outDir = process.env.ROLLUP_OUT_DIR || path.resolve(__dirname, 'dist');
+if (!config.output.dir && !config.output.file) config.output.file = path.resolve(outDir, pkg.name.replace(/\W+/g, '-') + (isDev ? '.development.js' : '.[hash].js'));
+
+module.exports = config;
