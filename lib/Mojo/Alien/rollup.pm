@@ -19,9 +19,12 @@ has config => sub { path->to_abs->child('rollup.config.js') };
 
 has dependencies => sub {
   return {
-    core => [qw(rollup @rollup/plugin-node-resolve)],
-    css  => [qw(cssnano postcss-preset-env rollup-plugin-postcss)],
-    js   => [qw(@rollup/plugin-commonjs @babel/core @babel/preset-env @rollup/plugin-babel rollup-plugin-terser)],
+    core   => [qw(rollup @rollup/plugin-commonjs @rollup/plugin-node-resolve)],
+    css    => [qw(cssnano postcss-preset-env rollup-plugin-postcss)],
+    eslint => [qw(@rollup/plugin-eslint)],
+    js => [qw(@babel/core @babel/preset-env @babel/plugin-transform-runtime @rollup/plugin-babel rollup-plugin-terser)],
+    sass   => [qw(cssnano @csstools/postcss-sass postcss-preset-env rollup-plugin-postcss sass)],
+    svelte => [qw(rollup-plugin-svelte)],
   };
 };
 
@@ -42,7 +45,6 @@ sub watch {
   chdir $home or die "Can't chdir to $home: $!";
   $ENV{NODE_ENV}          = $self->mode;
   $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
-  $ENV{ROLLUP_INCLUDE}    = $self->{env_include} || '';
   $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
   $self->_d('(%s) cd %s && %s', $$, $home, join ' ', @_) if DEBUG;
   { exec @cmd }
@@ -61,7 +63,7 @@ sub _cmd_build {
   return @cmd;
 }
 
-sub _config_include_dir   {'rollup.config.d'}
+sub _config_include_dir   { shift->assets_dir->child('rollup.config.d') }
 sub _config_template_name {'rollup.config.js'}
 sub _d                    { my ($self, $format) = (shift, shift); warn sprintf "[Rollup] $format\n", @_ }
 
@@ -70,7 +72,6 @@ sub _run {
   local $CWD                    = $self->config->dirname->to_string;
   local $ENV{NODE_ENV}          = $self->mode;
   local $ENV{ROLLUP_ASSETS_DIR} = $self->assets_dir->to_string;
-  local $ENV{ROLLUP_INCLUDE}    = $self->{env_include};
   local $ENV{ROLLUP_OUT_DIR}    = $self->out_dir->to_string;
   $self->_d('cd %s && %s', $CWD, join ' ', @cmd) if DEBUG;
   open my $ROLLUP, '-|', @cmd or die "Can't run @cmd: $!";
@@ -138,10 +139,12 @@ will be ignored. This attribute will be used by L</init>.
 
 These dependencies are predefined:
 
-  babel => [qw(@babel/core @babel/preset-env babel-loader)],
-  css   => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin)],
-  core  => [qw(rollup)],
-  js    => [qw(@rollup/plugin-node-resolve rollup-plugin-commonjs rollup-plugin-terser)],
+  core   | rollup @rollup/plugin-commonjs @rollup/plugin-node-resolve
+  css    | cssnano postcss-preset-env rollup-plugin-postcss
+  eslint | @rollup-plugin-eslint
+  js     | @babel/core @babel/preset-env @rollup/plugin-babel rollup-plugin-terser
+  sass   | cssnano @csstools/postcss-sass postcss-preset-env rollup-plugin-postcss sass
+  svelte | rollup-plugin-svelte
 
 =head2 include
 
@@ -202,19 +205,65 @@ L<Mojolicious::Plugin::Webpack> and L<Mojo::Alien::webpack>.
 =cut
 
 __DATA__
-@@ package-_rollup-plugin-commonjs.js
+@@ include/core.js
 const commonjs = require('@rollup/plugin-commonjs');
-module.exports = function(config) { config.plugins.push(commonjs) };
-@@ package-_rollup_plugin-node-resolve.js
-const resolve = require('@rollup/plugin-node-resolve');
-module.exports = function(config) { config.plugins.push(resolve) };
-@@ package-rollup-plugin-postcss.js
-const cssnano = require('cssnano');
-const postcss = require('rollup-plugin-postcss');
-const postcssPresetEnv = require('postcss-preset-env');
+const {nodeResolve} = require('@rollup/plugin-node-resolve');
 
 module.exports = function(config) {
-  config.plugins.push(postcss({extract: true, plugins: [postcssPresetEnv(), cssnano()]}));
+  config.plugins.push(nodeResolve());
+  config.plugins.push(commonjs());
+};
+@@ include/css.js
+const postcss = require('rollup-plugin-postcss');
+
+module.exports = function(config) {
+  config.plugins.push(postcss({
+    extract: true,
+    plugins: [
+      require('postcss-preset-env')(),
+      require('cssnano')(),
+    ],
+  }));
+};
+@@ include/eslint.js
+const eslint = require('@rollup/plugin-eslint');
+
+module.exports = function(config, {isDev}) {
+  if (!isDev) return;
+  config.plugins.push(eslint({
+    exclude: ['node_modules/**', '**/*.css', '**/*.sass'],
+    fix: process.env.ESLINT_FIX ? true : false,
+  }));
+}
+@@ include/js.js
+const {babel} = require('@rollup/plugin-babel');
+const {terser} = require('rollup-plugin-terser');
+
+module.exports = function(config, {isDev}) {
+  config.plugins.push(babel({
+    babelHelpers: 'runtime',
+    extensions: ['.html', '.js', '.mjs'],
+    plugins: ['@babel/plugin-transform-runtime'],
+    presets: [['@babel/preset-env', {corejs: 3, debug: false, useBuiltIns: 'entry'}]],
+  }));
+
+  if (!isDev) config.plugins.push(terser());
+}
+@@ include/sass.js
+const postcss = require('rollup-plugin-postcss');
+
+module.exports = function(config) {
+  config.plugins.push(postcss({extract: true, plugins: [
+    require('@csstools/postcss-sass')(),
+    require('postcss-preset-env')(),
+    require('cssnano')(),
+  ]}));
+};
+@@ include/svelte.js
+const svelte = require('rollup-plugin-svelte');
+
+module.exports = function(config) {
+  config.plugins.push(svelte({}));
 };
 @@ rollup.config.js
 const fs = require('fs');
@@ -223,6 +272,12 @@ const path = require('path');
 
 const assetsDir = process.env.ROLLUP_ASSETS_DIR || path.resolve(__dirname, 'assets');
 const isDev = process.env.NODE_ENV !== 'production';
+const outDir = process.env.ROLLUP_OUT_DIR || path.resolve(__dirname, 'dist');
+const ts = parseInt((new Date().getTime() / 1000), 10).toString(16);
+
+function outPath(name) {
+  return path.resolve(outDir, name.replace(/\[hash\]/, isDev ? 'development' : ts));
+}
 
 const config = {
   input: path.resolve(assetsDir, 'index.js'),
@@ -231,11 +286,9 @@ const config = {
   watch: {clearScreen: false},
 };
 
-(process.env.ROLLUP_INCLUDE || '').split(':').forEach(function(name) {
-  if (name) require(path.resolve(assetsDir, 'rollup.config.d', name))(config);
-});
+const includeFile = path.resolve(assetsDir, 'rollup.config.d', 'include.js');
+if (fs.existsSync(includeFile)) require(includeFile)(config, {isDev});
 
-const outDir = process.env.ROLLUP_OUT_DIR || path.resolve(__dirname, 'dist');
-if (!config.output.dir && !config.output.file) config.output.file = path.resolve(outDir, pkg.name.replace(/\W+/g, '-') + (isDev ? '.development.js' : '.[hash].js'));
+if (!config.output.dir && !config.output.file) config.output.file = outPath(pkg.name.replace(/\W+/g, '-') + '.[hash].js');
 
 module.exports = config;
