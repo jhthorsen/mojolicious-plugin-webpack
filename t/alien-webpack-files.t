@@ -5,9 +5,7 @@ use Mojo::JSON::Pointer;
 use Test::More;
 
 plan skip_all => 'TEST_WEBPACK=1' unless $ENV{TEST_WEBPACK} or $ENV{TEST_ALL};
-
-my $remove_tree = $ENV{TEST_CONTINUE} ? sub { } : 'remove_tree';
-chdir(my $work_dir = path(local => path($0)->basename)->tap($remove_tree)->make_path) or die $!;
+note sprintf 'work_dir=%s', Mojo::Alien::npm->_setup_working_directory;
 
 my $webpack = Mojo::Alien::webpack->new;
 $webpack->include([qw(js css images)]);

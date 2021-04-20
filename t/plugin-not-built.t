@@ -3,8 +3,9 @@ use Mojo::File qw(path);
 use Test::More;
 
 BEGIN {
-  plan skip_all => $@ || $!
-    unless eval { chdir($ENV{MOJO_HOME} = path(local => path($0)->basename)->to_abs->remove_tree->make_path) };
+  require Mojo::Alien::npm;
+  note sprintf 'work_dir=%s', Mojo::Alien::npm->_setup_working_directory;
+  $ENV{MOJO_HOME} = path->to_string;
   note "MOJO_HOME=$ENV{MOJO_HOME}";
 }
 

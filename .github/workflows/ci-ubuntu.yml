@@ -14,7 +14,7 @@ jobs:
     - name: Use Node.js ${{matrix.node-version}}
       uses: actions/setup-node@v1
       with:
-        node-version: '12.x'
+        node-version: '15.x'
     - name: perl -V
       run: perl -V
     - name: Fix ExtUtils::MakeMaker (for Perl 5.16 and 5.18)
@@ -24,9 +24,11 @@ jobs:
         cpanm -n --installdeps .
         cpanm -n Test::Pod Test::Pod::Coverage
     - name: Run tests
-      run: prove -l t/*.t
+      run: prove -vl t/*.t
       env:
-        HARNESS_OPTIONS: j3
-        TEST_ALL: 1
+        TEST_CSS: 1
+        TEST_JS: 1
+        TEST_NPM: 1
         TEST_POD: 1
-        TEST_PUBSUB: 1
+        TEST_ROLLUP: 1
+        TEST_WEBPACK: 1

@@ -81,6 +81,18 @@ sub _run {
   map { DEBUG && print } <$NPM>;
 }
 
+# This is a utility function for the unit tests
+sub _setup_working_directory {
+  my ($class, $dir) = @_;
+  my $remove_tree = $ENV{MOJO_NPM_CLEAN} ? 'remove_tree' : sub { };
+  chdir(my $work_dir = path($dir ? $dir : ('local', path($0)->basename))->to_abs->tap($remove_tree)->make_path)
+    or die "Couldn't set up working directory: $!";
+  symlink $work_dir->dirname->child('node_modules')->make_path, 'node_modules'
+    or warn "Couldn't set up shared node_modules: $!"
+    unless -e 'node_modules';
+  return $work_dir;
+}
+
 1;
 
 =encoding utf8

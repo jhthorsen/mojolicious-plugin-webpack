@@ -4,11 +4,10 @@ use Test::More;
 use Test::Mojo;
 
 BEGIN {
+  require Mojo::Alien::npm;
   plan skip_all => 'TEST_WEBPACK=1' unless $ENV{TEST_WEBPACK} or $ENV{TEST_ALL};
-
-  my $remove_tree = $ENV{TEST_CONTINUE} ? sub { } : 'remove_tree';
-  plan skip_all => $@ || $!
-    unless eval { chdir($ENV{MOJO_HOME} = path(local => path($0)->basename)->to_abs->tap($remove_tree)->make_path) };
+  note sprintf 'work_dir=%s', Mojo::Alien::npm->_setup_working_directory;
+  $ENV{MOJO_HOME} = path->to_string;
   note "MOJO_HOME=$ENV{MOJO_HOME}";
 
   note 'Build the development assets once by setting MOJO_WEBPACK_BUILD=1';

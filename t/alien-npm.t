@@ -4,12 +4,8 @@ use Mojo::File qw(path);
 use Test::More;
 
 plan skip_all => 'TEST_NPM=1' unless $ENV{TEST_NPM} or $ENV{TEST_ALL};
-
-my $remove_tree = $ENV{TEST_CONTINUE} ? sub { } : 'remove_tree';
-chdir(my $work_dir = path(local => path($0)->basename)->tap($remove_tree)->make_path) or die $!;
-note "work_dir=$work_dir";
-
-sub maybe (&) { local $TODO = 'TEST_CONTINUE=1' if $ENV{TEST_CONTINUE}; shift->(); }
+note sprintf 'work_dir=%s', Mojo::Alien::npm->_setup_working_directory;
+sub maybe (&) { local $TODO = 'MOJO_NPM_CLEAN=0' unless $ENV{MOJO_NPM_CLEAN}; shift->(); }
 
 subtest 'basic' => sub {
   my $npm = Mojo::Alien::npm->new;
