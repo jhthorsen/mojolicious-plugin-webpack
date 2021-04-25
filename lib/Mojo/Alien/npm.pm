@@ -20,8 +20,19 @@ sub dependencies {
   my $self = shift;
   croak "Can't get dependency info without package.json" unless -r $self->config;
 
-  my $NPM          = $self->_run(qw(ls --json --parseable --silent));
-  my $dependencies = decode_json(join '', <$NPM>)->{dependencies} || {};
+  my @args = $self->command->[0] eq 'pnpm' ? qw(ls --json --silent) : qw(ls --json --parseable --silent);
+  my $dependencies;
+
+  eval {
+    my $NPM = $self->_run(@args);
+
+    # "WARN" might come from pnpm, and it also returns an array-ref
+    $dependencies = decode_json(join '', grep { !/WARN/ } <$NPM>);
+    $dependencies = $dependencies->[0] if ref $dependencies eq 'ARRAY';
+    $dependencies = {map { %{$dependencies->{$_} || {}} } qw(devDependencies dependencies)};
+  } or do {
+    croak sprintf '%s failed: %s', join(' ', @{$self->command}, @args), $@;
+  };
 
   my $package = decode_json $self->config->slurp;
   my %types   = (devDependencies => 'dev', dependencies => 'prod', optionalDependencies => 'optional');
@@ -99,7 +110,8 @@ L<npm|https://npmjs.com/>.
   $npm = $npm->command(['npm']);
 
 The path to the npm executable. Default is "npm". The C<MOJO_NPM_BINARY>
-environment variable can be set to change the default.
+environment variable can be set to change the default. This can also be set to
+"pnpm" in case you prefer L<https://pnpm.io/>.
 
 =head2 config
 
