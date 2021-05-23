@@ -7,12 +7,12 @@ use File::chdir;
 
 use constant DEBUG => $ENV{MOJO_ROLLUP_DEBUG} && 1;
 
-has command => sub {
+has binary => sub {
   my $self = shift;
-  return [$ENV{MOJO_ROLLUP_BINARY}] if $ENV{MOJO_ROLLUP_BINARY};
+  return $ENV{MOJO_ROLLUP_BINARY} if $ENV{MOJO_ROLLUP_BINARY};
   my $bin = $self->config->to_abs->dirname->child(qw(node_modules .bin rollup));
   $self->_d('%s %s', -e $bin ? 'Found' : 'Not installed', $bin) if DEBUG;
-  return -e $bin ? [$bin->to_string] : ['rollup'];
+  return -e $bin ? $bin->to_string : 'rollup';
 };
 
 has config => sub { path->to_abs->child('rollup.config.js') };
@@ -59,7 +59,7 @@ sub _cmd_build {
   my $self = shift;
   $self->init;
 
-  my @cmd = @{$self->command};
+  my @cmd = ($self->binary);
   croak "Can't run $cmd[0]" unless -x $cmd[0];
 
   $self->{basename} ||= path($cmd[0])->basename;
@@ -113,17 +113,14 @@ L<rollup|https://rollupjs.org/>.
 
 See L<Mojo::Alien::webpack/assets_dir>.
 
-=head2 command
+=head2 binary
 
-  $array_ref = $rollup->command;
-  $rollup = $rollup->command(['rollup']);
+  $array_ref = $rollup->binary;
+  $rollup = $rollup->binary('rollup');
 
-The path to the rollup executable and any custom arguments that is required
-for L</build> and L</watch>. This variable tries to find rollup in
-"node_modules/" before falling back to just "rollup".
-
-The C<MOJO_ROLLUP_BINARY> environment variable can be set to change the
-default.
+The path to the rollup executable. Defaults to C<MOJO_ROLLUP_BINARY>
+environment variable, or "rollup" inside "./node_modules". Fallback to just
+"rollup".
 
 =head2 config
 

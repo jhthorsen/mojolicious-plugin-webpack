@@ -122,7 +122,7 @@ sub _read_asset_map {
   $@ =~ s!at \S* line.*!!s;
   local $Carp::CarpLevel = $Carp::CarpLevel + 2;
   carp sprintf qq([Mojolicious::Plugin::Webpack] Sure %s has been run for mode "%s"? %s),
-    path($self->engine->command->[0])->basename, $self->engine->mode, $@;
+    path($self->engine->binary)->basename, $self->engine->mode, $@;
 }
 
 sub _write_asset_map {

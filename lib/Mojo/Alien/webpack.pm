@@ -16,12 +16,12 @@ our $VERSION = $Mojolicious::Plugin::Webpack::VERSION || '0.01';
 
 has assets_dir => sub { shift->config->dirname->child('assets') };
 
-has command => sub {
+has binary => sub {
   my $self = shift;
-  return [$ENV{MOJO_WEBPACK_BINARY}] if $ENV{MOJO_WEBPACK_BINARY};
+  return $ENV{MOJO_WEBPACK_BINARY} if $ENV{MOJO_WEBPACK_BINARY};
   my $bin = $self->config->to_abs->dirname->child(qw(node_modules .bin webpack));
   $self->_d('%s %s', -e $bin ? 'Found' : 'Not installed', $bin) if DEBUG;
-  return -e $bin ? [$bin->to_string] : ['webpack'];
+  return -e $bin ? $bin->to_string : 'webpack';
 };
 
 has config => sub { path->to_abs->child('webpack.config.js') };
@@ -137,7 +137,7 @@ sub stop {
     sleep $ENV{MOJO_WEBPACK_STOP_INTERVAL} || 0.1;
   }
 
-  $self->{basename} ||= path($self->command->[0])->basename;
+  $self->{basename} ||= path($self->binary)->basename;
   croak "Couldn't stop $self->{basename} with pid @{[$self->pid]}";
 }
 
@@ -158,7 +158,7 @@ sub _cmd_build {
   my $self = shift;
   $self->init;
 
-  my @cmd = @{$self->command};
+  my @cmd = ($self->binary);
   croak "Can't run $cmd[0]" unless -x $cmd[0];
 
   $self->{basename} ||= path($cmd[0])->basename;
@@ -239,17 +239,14 @@ L<webpack|https://webpack.js.org/>.
 
 Location to source assetsa and partial webpack.config.js files.
 
-=head2 command
+=head2 binary
 
-  $array_ref = $webpack->command;
-  $webpack = $webpack->command(['webpack']);
+  $array_ref = $webpack->binary;
+  $webpack = $webpack->binary('webpack');
 
-The path to the webpack executable and any custom arguments that is required
-for L</build> and L</watch>. This variable tries to find webpack in
-"node_modules/" before falling back to just "webpack".
-
-The C<MOJO_WEBPACK_BINARY> environment variable can be set to change the
-default.
+The path to the webpack executable. Defaults to C<MOJO_WEBPACK_BINARY>
+environment variable, or "webpack" inside "./node_modules". Fallback to just
+"webpack".
 
 =head2 config
 

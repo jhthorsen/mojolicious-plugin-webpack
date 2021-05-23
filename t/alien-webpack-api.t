@@ -25,9 +25,9 @@ subtest 'build' => sub {
   my $webpack = Mojo::Alien::webpack->new;
   is $webpack->build, $webpack, 'build';
 
-  local $webpack->command->[0] = '/no/such/bin/webpack';
+  local $webpack->{binary} = '/no/such/bin/webpack';
   eval { $webpack->build };
-  like $@, qr(Can't run.*webpack), 'invalid command';
+  like $@, qr(Can't run.*webpack), 'invalid binary';
 };
 
 subtest 'watch' => sub {
@@ -46,9 +46,9 @@ subtest 'watch' => sub {
   is $webpack->stop, $webpack, 'stop';
   ok !$webpack->pid, 'stopped';
 
-  local $webpack->command->[0] = '/no/such/bin/webpack';
+  local $webpack->{binary} = '/no/such/bin/webpack';
   eval { $webpack->watch };
-  like $@, qr(Can't run.*webpack), 'invalid command';
+  like $@, qr(Can't run.*webpack), 'invalid binary';
 };
 
 done_testing;

@@ -27,9 +27,9 @@ subtest 'build' => sub {
   $rollup->config->dirname->child(qw(assets))->make_path->child('index.js')->spurt("console.log(42);\n");
   is $rollup->build, $rollup, 'build';
 
-  local $rollup->command->[0] = '/no/such/bin/rollup';
+  local $rollup->{binary} = '/no/such/bin/rollup';
   eval { $rollup->build };
-  like $@, qr(Can't run.*rollup), 'invalid command';
+  like $@, qr(Can't run.*rollup), 'invalid binary';
 };
 
 subtest 'watch' => sub {
@@ -48,9 +48,9 @@ subtest 'watch' => sub {
   is $rollup->stop, $rollup, 'stop';
   ok !$rollup->pid, 'stopped';
 
-  local $rollup->command->[0] = '/no/such/bin/rollup';
+  local $rollup->{binary} = '/no/such/bin/rollup';
   eval { $rollup->watch };
-  like $@, qr(Can't run.*rollup), 'invalid command';
+  like $@, qr(Can't run.*rollup), 'invalid binary';
 };
 
 done_testing;

@@ -9,8 +9,8 @@ sub maybe (&) { local $TODO = 'MOJO_NPM_CLEAN=0' unless $ENV{MOJO_NPM_CLEAN}; sh
 
 subtest 'basic' => sub {
   my $npm = Mojo::Alien::npm->new;
-  is_deeply $npm->command, ['npm'], 'command';
-  is $npm->mode, 'development', 'mode';
+  is $npm->binary, 'npm',         'binary';
+  is $npm->mode,   'development', 'mode';
 
   eval { $npm->install };
   maybe { like $@, qr{Can't install packages}, 'install' };

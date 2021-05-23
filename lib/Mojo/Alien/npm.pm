@@ -8,9 +8,9 @@ use Mojo::JSON qw(decode_json false);
 
 use constant DEBUG => ($ENV{MOJO_NPM_DEBUG} || $ENV{MOJO_WEBPACK_DEBUG}) && 1;
 
-has command => sub {
+has binary => sub {
   my $self = shift;
-  return $ENV{MOJO_NPM_BINARY} ? [$ENV{MOJO_NPM_BINARY}] : ['npm'];
+  return $ENV{MOJO_NPM_BINARY} ? $ENV{MOJO_NPM_BINARY} : 'npm';
 };
 
 has config => sub { path->to_abs->child('package.json') };
@@ -20,7 +20,7 @@ sub dependencies {
   my $self = shift;
   croak "Can't get dependency info without package.json" unless -r $self->config;
 
-  my @args = $self->command->[0] eq 'pnpm' ? qw(ls --json --silent) : qw(ls --json --parseable --silent);
+  my @args = $self->binary eq 'pnpm' ? qw(ls --json --silent) : qw(ls --json --parseable --silent);
   my $dependencies;
 
   eval {
@@ -31,7 +31,7 @@ sub dependencies {
     $dependencies = $dependencies->[0] if ref $dependencies eq 'ARRAY';
     $dependencies = {map { %{$dependencies->{$_} || {}} } qw(devDependencies dependencies)};
   } or do {
-    croak sprintf '%s failed: %s', join(' ', @{$self->command}, @args), $@;
+    croak sprintf '%s failed: %s', join(' ', $self->binary, @args), $@;
   };
 
   my $package = decode_json $self->config->slurp;
@@ -71,7 +71,7 @@ sub install {
 
 sub _run {
   my $self = shift;
-  my @cmd  = (@{$self->command}, @_);
+  my @cmd  = ($self->binary, @_);
   $self->{basename} ||= path($cmd[0])->basename;
   local $CWD = $self->config->dirname->to_string;
   local $ENV{NODE_ENV} = $self->mode;
@@ -116,14 +116,14 @@ L<npm|https://npmjs.com/>.
 
 =head1 ATTRIBUTES
 
-=head2 command
+=head2 binary
 
-  $array_ref = $npm->command;
-  $npm = $npm->command(['npm']);
+  $array_ref = $npm->binary;
+  $npm = $npm->binary(['npm']);
 
-The path to the npm executable. Default is "npm". The C<MOJO_NPM_BINARY>
-environment variable can be set to change the default. This can also be set to
-"pnpm" in case you prefer L<https://pnpm.io/>.
+The path to the npm executable. Default is "npm" unless the C<MOJO_NPM_BINARY>
+environment variable has been set. This can also be set to "pnpm" in case you
+prefer L<https://pnpm.io/>.
 
 =head2 config
 
