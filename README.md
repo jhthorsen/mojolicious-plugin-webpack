@@ -148,6 +148,24 @@ Returns a [Mojo::Alien::webpack](https://metacpan.org/pod/Mojo%3A%3AAlien%3A%3Aw
 
 # METHODS
 
+## asset\_map
+
+    $hash_ref = $webpack->asset_map;
+
+Reads all the generated files in ["asset\_path"](#asset_path) and returns a hash-ref like
+this:
+
+    {
+      "relative/output.js" => {               # Key is a friendly name, withouc checksum
+        ext      => 'css',                    # File extension
+        helper   => 'javascript',             # Mojolicious helper used to render the asset
+        rel_name => "relatibe/output.xyz.js", # Relative filename with checksum
+      },
+      ...
+    }
+
+Note that changing this hash might change how ["asset"](#asset) and ["url\_for"](#url_for) behaves!
+
 ## register
 
     $webpack->register($app, \%config);

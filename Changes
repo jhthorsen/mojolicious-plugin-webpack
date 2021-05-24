@@ -1,6 +1,6 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
-1.01 Not Released
+1.01 2021-05-25T07:36:24+0900
  - Removed need for assets/asset_map.mode.json
  - Add support for mojo webpack --build
 
