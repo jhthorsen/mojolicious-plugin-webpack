@@ -3,7 +3,6 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use Carp qw(carp croak);
 use Mojo::File qw(path);
-use Mojo::JSON qw(decode_json encode_json);
 use Mojo::Path;
 use Mojo::Util;
 
@@ -14,15 +13,35 @@ our $VERSION = '1.00';
 
 has engine => undef;
 
-has _asset_map_file => sub {
+sub asset_map {
   my $self = shift;
-  return $self->engine->assets_dir->child(sprintf 'asset_map.%s.json', $self->engine->mode);
-};
+
+  # Production
+  return $self->{asset_map} if $self->{cache_asset_map};
+
+  # Development or initial load
+  my $produced  = $self->engine->asset_map;
+  my %asset_map = (development => {}, production => {});
+  for my $rel_name (keys %$produced) {
+    my $asset  = $produced->{$rel_name};
+    my $helper = $asset->{ext} eq 'js' ? 'javascript' : $asset->{ext} eq 'css' ? 'stylesheet' : 'image';
+    $asset_map{$asset->{mode}}{$asset->{name}} = {%$asset, helper => $helper, rel_name => $rel_name};
+  }
+
+  my $mode = $self->engine->mode;
+  $self->{asset_map} = $asset_map{production};
+  for my $name (keys %{$asset_map{development}}) {
+    $mode eq 'development'
+      ? ($self->{asset_map}{$name} = $asset_map{development}{$name})
+      : ($self->{asset_map}{$name} ||= $asset_map{development}{$name});
+  }
+
+  return $self->{asset_map};
+}
 
 sub register {
   my ($self, $app, $config) = @_;
 
-  # Setup up the plugin
   my $asset_path = ($config->{asset_path} ||= '/asset');    # EXPERIMENTAL
   $asset_path .= '/';
   $app->routes->any([qw(HEAD GET)] => "$asset_path*name")->name('webpack.asset');
@@ -31,25 +50,20 @@ sub register {
   $self->_build_engine($app, $config);
   $app->plugins->emit_hook(before_webpack_start => $self);
 
-  # Build or read built assets
-  my $build_method = !$ENV{MOJO_WEBPACK_BUILD} ? '' : $ENV{MOJO_WEBPACK_BUILD} =~ m!\b(watch)\b!i ? $1 : 'build';
-  if ($build_method) {
-    $build_method = 'exec' if $build_method eq 'watch';
-    $self->{mtime} = -1;
+  my $cache_control = 'no-cache';
+  if (my $build_method = $ENV{MOJO_WEBPACK_BUILD}) {
+    $build_method = 'exec'  if $build_method =~ m!exec|watch!;
+    $build_method = 'build' if $build_method ne 'exec';
     $self->engine->_d('MOJO_WEBPACK_BUILD=%s', $build_method) if DEBUG;
     $self->engine->$build_method;    # "exec" will take over the current process
-    $self->_read_asset_map if $self->_write_asset_map;
   }
   else {
-    $self->{mtime} = undef;
-    $self->engine->_d('Read assets from %s', $self->_asset_map_file) if DEBUG;
-    $self->_write_asset_map                                          if defined $ENV{MOJO_WEBPACK_BUILD};
-    $self->_read_asset_map;
+    $self->asset_map;
+    $self->{cache_asset_map} = !defined $ENV{MOJO_WEBPACK_BUILD};
+    $cache_control = $config->{cache_control} // 'max-age=86400' if $self->{cache_asset_map};
   }
 
-  # Add "Cache-Control" response header
-  my $cache_control = defined $ENV{MOJO_WEBPACK_BUILD} ? 'no-cache' : $config->{cache_control} // 'max-age=86400';
-  $cache_control && $app->hook(
+  $app->hook(
     after_static => sub {
       my $c = shift;
       $c->res->headers->cache_control($cache_control) if index($c->req->url->path, $asset_path) == 0;
@@ -59,19 +73,8 @@ sub register {
 
 sub url_for {
   my ($self, $c, $name) = @_;
-  _unknown_asset($name) unless my $asset = $self->_asset_map->{$name};
-  return $c->url_for('webpack.asset', {name => $asset->{name}});
-}
-
-sub _asset_map {
-  my $self = shift;
-
-  # Production mode
-  return $self->{asset_map} if !$self->{mtime} and $self->{asset_map};
-
-  # Development mode
-  $self->_read_asset_map if $self->_write_asset_map;
-  return $self->{asset_map};
+  _unknown_asset($name) unless my $asset = $self->asset_map->{$name};
+  return $c->url_for('webpack.asset', {name => $asset->{rel_name}});
 }
 
 sub _build_engine {
@@ -92,54 +95,19 @@ sub _build_engine {
   return $self->{engine} = $engine;
 }
 
-sub _unknown_asset {
-  local @CARP_NOT = qw(Mojolicious::Plugin::EPRenderer Mojolicious::Plugin::Webpack Mojolicious::Renderer);
-  croak qq(Unknown asset name "$_[0]".);
-}
-
 sub _helper {
   my ($self, $c, $name, @args) = @_;
   return $self                   if @_ == 2;
   return $self->$name($c, @args) if $name =~ m!^\w+$!;
 
-  _unknown_asset($name) unless my $asset = $self->_asset_map->{$name};
+  _unknown_asset($name) unless my $asset = $self->asset_map->{$name};
   my $helper = $asset->{helper} || 'url_for';
-  return $c->$helper($c->url_for('webpack.asset', {name => $asset->{name}}), @args);
+  return $c->$helper($c->url_for('webpack.asset', {name => $asset->{rel_name}}), @args);
 }
 
-sub _read_asset_map {
-  my $self = shift;
-
-  if (my $asset_map = eval { decode_json $self->_asset_map_file->slurp }) {
-    $self->{asset_map} = {};
-    map { $self->{asset_map}{$_} = $asset_map->{production}{$_} } keys %{$asset_map->{production}};
-    map { $self->{asset_map}{$_} = $asset_map->{development}{$_} } keys %{$asset_map->{development}}
-      if $self->engine->mode eq 'development';
-    return;
-  }
-
-  # Failed to read asset_map
-  $@ =~ s!at \S* line.*!!s;
-  local $Carp::CarpLevel = $Carp::CarpLevel + 2;
-  carp sprintf qq([Mojolicious::Plugin::Webpack] Sure %s has been run for mode "%s"? %s),
-    path($self->engine->binary)->basename, $self->engine->mode, $@;
-}
-
-sub _write_asset_map {
-  my $self = shift;
-
-  my $produced = $self->engine->asset_map;
-  my ($mtime, %asset_map) = (0);
-  for my $rel_name (keys %$produced) {
-    my $asset  = $produced->{$rel_name};
-    my $helper = $asset->{ext} eq 'js' ? 'javascript' : $asset->{ext} eq 'css' ? 'stylesheet' : 'image';
-    $asset_map{$asset->{mode}}{$asset->{name}} = {helper => $helper, mtime => $asset->{mtime}, name => $rel_name};
-    $mtime += $asset->{mtime};
-  }
-
-  return 0 if $self->{mtime} and $self->{mtime} == $mtime;
-  $self->_asset_map_file->spurt(encode_json \%asset_map);
-  return $self->{mtime} = $mtime;
+sub _unknown_asset {
+  local @CARP_NOT = qw(Mojolicious::Plugin::EPRenderer Mojolicious::Plugin::Webpack Mojolicious::Renderer);
+  croak qq(Unknown asset name "$_[0]".);
 }
 
 1;
@@ -310,6 +278,24 @@ defaults.
 Returns a L<Mojo::Alien::webpack> or L<Mojo::Alien::rollup> object.
 
 =head1 METHODS
+
+=head2 asset_map
+
+  $hash_ref = $webpack->asset_map;
+
+Reads all the generated files in L</asset_path> and returns a hash-ref like
+this:
+
+  {
+    "relative/output.js" => {               # Key is a friendly name, withouc checksum
+      ext      => 'css',                    # File extension
+      helper   => 'javascript',             # Mojolicious helper used to render the asset
+      rel_name => "relatibe/output.xyz.js", # Relative filename with checksum
+    },
+    ...
+  }
+
+Note that changing this hash might change how L</asset> and L</url_for> behaves!
 
 =head2 register
 

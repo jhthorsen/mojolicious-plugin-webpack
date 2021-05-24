@@ -1,5 +1,8 @@
 Revision history for perl distribution Mojolicious-Plugin-Webpack
 
+1.01 Not Released
+ - Removed need for assets/asset_map.mode.json
+
 1.00 2021-05-24T15:17:08+0900
  - Add Mojo::Alien::npm
  - Add Mojo::Alien::rollup
