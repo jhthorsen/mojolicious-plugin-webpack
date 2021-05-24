@@ -290,7 +290,7 @@ this:
     "relative/output.js" => {               # Key is a friendly name, withouc checksum
       ext      => 'css',                    # File extension
       helper   => 'javascript',             # Mojolicious helper used to render the asset
-      rel_name => "relatibe/output.xyz.js", # Relative filename with checksum
+      rel_name => "relative/output.xyz.js", # Relative filename with checksum
     },
     ...
   }
