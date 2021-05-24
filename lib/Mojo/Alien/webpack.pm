@@ -96,7 +96,7 @@ sub init {
 
   my $dependencies = $self->npm->dependencies;
   my @includes     = @{$self->include};
-  push @includes, 'core' unless grep { $_ eq 'core' } @includes;
+  unshift @includes, 'core' unless grep { $_ eq 'core' } @includes;
   my ($conf_d, @includes_names, %seen) = ($self->_config_include_dir);
   for my $include (@includes) {
     for my $package (@{$self->dependencies->{$include} || []}) {
