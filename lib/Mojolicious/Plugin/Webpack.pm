@@ -10,7 +10,7 @@ use Mojo::Util;
 use constant DEBUG => $ENV{MOJO_WEBPACK_DEBUG} && 1;
 
 our @CARP_NOT;
-our $VERSION = '0.14';
+our $VERSION = '1.00';
 
 has engine => undef;
 

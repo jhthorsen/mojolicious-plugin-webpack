@@ -72,6 +72,6 @@
 \.ship.conf
 \.travis.yml
 \.vstags
-node_modules
+.*node_modules.*
 example/rollup/public/asset
 example/webpack/public/asset
