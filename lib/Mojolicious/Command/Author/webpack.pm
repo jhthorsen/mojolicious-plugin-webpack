@@ -23,6 +23,7 @@ sub run {
 
   # Parse command line options
   getopt \@argv,
+    'B|build'     => \my $build,
     'b|backend=s' => \$ENV{MOJO_MORBO_BACKEND},
     'h|help'      => \my $help,
     'l|listen=s'  => \my @listen,
@@ -31,6 +32,7 @@ sub run {
     'w|watch=s'   => \my @watch;
 
   die join "\n\n", $self->description, $self->usage if $help or !(my $app = shift @argv);
+  return $self->_build($app) if $build;
 
   # Start rollup/webpack
   my $builder_pid = $self->_start_builder($app);
@@ -46,6 +48,12 @@ sub run {
   # Stop rollup/webpack after the app is killed
   warn "[Webpack] [$$] Reaping builder with pid $builder_pid...\n" if $ENV{MORBO_VERBOSE} and !SILENT;
   1 while kill $builder_pid;
+}
+
+sub _build {
+  my ($self, $app) = @_;
+  $ENV{MOJO_WEBPACK_BUILD} ||= 'build';
+  Mojo::Server->new->load_app($app);
 }
 
 sub _exec_mojo_webpack {
@@ -81,8 +89,11 @@ Mojolicious::Command::Author::webpack - Mojolicious HTTP, WebSocket and Webpack 
     mojo webpack -m production -l https://*:443 -l http://[::]:3000 ./myapp.pl
     mojo webpack -l 'https://*:443?cert=./server.crt&key=./server.key' ./myapp.pl
     mojo webpack -w /usr/local/lib -w public -w myapp.conf ./myapp.pl
+    mojo webpack --build --mode production
+    MOJO_NPM_BINARY=pnpm mojo webpack --build
 
   Options:
+    -B, --build                    Build the assets and exit
     -b, --backend <name>           Morbo backend to use for reloading, defaults
                                    to "Poll"
     -h, --help                     Show this message
