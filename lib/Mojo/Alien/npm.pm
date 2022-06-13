@@ -65,7 +65,7 @@ sub install {
   # Install specific package
   $name = sprintf '%s@%s', $name, $info->{version} if $info->{version};
   my $type = sprintf '--save-%s', $info->{type} || 'dev';
-  $self->_run('install', $name, $type);
+  $self->_run('install', $name, $type, '--production=false' );
   return $self;
 }
 
