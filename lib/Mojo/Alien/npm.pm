@@ -59,13 +59,16 @@ sub install {
   my ($self, $name, $info) = @_;
   croak "Can't install packages without package.json" unless -w $self->config;
 
+  # Make sure npm can install devDependencies and dependency
+  local $self->{mode} = '';
+
   # Install everything
   do { $self->_run('install'); return $self } unless $name;
 
   # Install specific package
   $name = sprintf '%s@%s', $name, $info->{version} if $info->{version};
   my $type = sprintf '--save-%s', $info->{type} || 'dev';
-  $self->_run('install', $name, $type, '--production=false');
+  $self->_run('install', $name, $type);
   return $self;
 }
 
