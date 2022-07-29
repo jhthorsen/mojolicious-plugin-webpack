@@ -75,3 +75,7 @@
 .*node_modules.*
 example/rollup/public/asset
 example/webpack/public/asset
+
+.pls_cache
+.github
+.gitattributes
