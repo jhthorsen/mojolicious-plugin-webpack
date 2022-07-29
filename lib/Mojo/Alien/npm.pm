@@ -50,7 +50,7 @@ sub dependencies {
 sub init {
   my $self = shift;
   return $self if -r $self->config;
-  $self->_run(qw(init -y));
+  $self->_run($self->binary eq 'pnpm' ? qw(init) : qw(init -y));
   croak "$self->{basename} init failed: @{[$self->config]} was not generated." unless -r $self->config;
   return $self;
 }
@@ -65,7 +65,7 @@ sub install {
   # Install specific package
   $name = sprintf '%s@%s', $name, $info->{version} if $info->{version};
   my $type = sprintf '--save-%s', $info->{type} || 'dev';
-  $self->_run('install', $name, $type, '--production=false' );
+  $self->_run('install', $name, $type, '--production=false');
   return $self;
 }
 
