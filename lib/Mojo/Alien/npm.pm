@@ -114,7 +114,7 @@ Mojo::Alien::npm - Runs the external nodejs program npm
 
 =head1 DESCRIPTION
 
-L<Mojo::Alien::webpack> is a class for runnig the external nodejs program
+L<Mojo::Alien::webpack> is a class for running the external nodejs program
 L<npm|https://npmjs.com/>.
 
 =head1 ATTRIBUTES

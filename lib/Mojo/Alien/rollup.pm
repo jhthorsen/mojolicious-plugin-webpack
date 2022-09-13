@@ -104,7 +104,7 @@ Mojo::Alien::rollup - Runs the external nodejs program rollup
 
 =head1 DESCRIPTION
 
-L<Mojo::Alien::rollup> is a class for runnig the external nodejs program
+L<Mojo::Alien::rollup> is a class for running the external nodejs program
 L<rollup|https://rollupjs.org/>.
 
 =head1 ATTRIBUTES

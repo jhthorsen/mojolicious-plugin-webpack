@@ -227,7 +227,7 @@ Mojo::Alien::webpack - Runs the external nodejs program webpack
 
 =head1 DESCRIPTION
 
-L<Mojo::Alien::webpack> is a class for runnig the external nodejs program
+L<Mojo::Alien::webpack> is a class for running the external nodejs program
 L<webpack|https://webpack.js.org/>.
 
 =head1 ATTRIBUTES
@@ -237,7 +237,7 @@ L<webpack|https://webpack.js.org/>.
   $path = $webpack->assets_dir;
   $webpack = $webpack->assets_dir($webpack->config->dirname->child('assets'))
 
-Location to source assetsa and partial webpack.config.js files.
+Location to source assets and partial webpack.config.js files.
 
 =head2 binary
 

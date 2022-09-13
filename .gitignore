@@ -1,5 +1,6 @@
 ~$
 *.bak
+*.o
 *.old
 *.swp
 /*.tar.gz
@@ -9,10 +10,11 @@
 /local
 /Makefile
 /Makefile.old
-/MANIFEST$
+/MANIFEST
 /MANIFEST.bak
 /META*
 /MYMETA*
+/nytprof*
 /pm_to_blib
 node_modules
 package-lock.json
