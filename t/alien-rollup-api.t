@@ -24,7 +24,7 @@ subtest 'basic' => sub {
 subtest 'build' => sub {
   my $rollup = Mojo::Alien::rollup->new;
 
-  $rollup->config->dirname->child(qw(assets))->make_path->child('index.js')->spurt("console.log(42);\n");
+  $rollup->config->dirname->child(qw(assets))->make_path->child('index.js')->spew("console.log(42);\n");
   is $rollup->build, $rollup, 'build';
 
   local $rollup->{binary} = '/no/such/bin/rollup';

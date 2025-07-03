@@ -28,7 +28,7 @@ $t->get_ok('/asset/plugin-build-t.development.js')->status_is(200)->header_is('C
 done_testing;
 
 sub make_project_files {
-  app->home->rel_file('assets')->make_path->child('index.js')->spurt('console.log(42);');
+  app->home->rel_file('assets')->make_path->child('index.js')->spew('console.log(42);');
 }
 
 __DATA__

@@ -47,7 +47,7 @@ sub make_project_files {
   for my $name (keys %$data) {
     my $file = $rollup->assets_dir->child(split '/', $name);
     $file->dirname->make_path;
-    $file->spurt($data->{$name});
+    $file->spew($data->{$name});
   }
 
   return $data;

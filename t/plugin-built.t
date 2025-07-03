@@ -21,7 +21,7 @@ done_testing;
 
 sub make_project_files {
   my $assets = app->home->rel_file('assets');
-  $assets->child('webpack.config.d')->make_path->child('custom.js')->spurt(<<'HERE');
+  $assets->child('webpack.config.d')->make_path->child('custom.js')->spew(<<'HERE');
 module.exports = function(config) {
   config.entry = {
     'cool': './assets/cool-beans.js',
@@ -29,7 +29,7 @@ module.exports = function(config) {
 };
 HERE
 
-  $assets->child('cool-beans.js')->spurt('console.log(42);');
+  $assets->child('cool-beans.js')->spew('console.log(42);');
 }
 
 __DATA__
