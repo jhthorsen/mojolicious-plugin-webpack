@@ -22,7 +22,7 @@ has dependencies => sub {
     core   => [qw(rollup @rollup/plugin-commonjs @rollup/plugin-node-resolve)],
     css    => [qw(cssnano postcss-preset-env rollup-plugin-postcss)],
     eslint => [qw(@rollup/plugin-eslint)],
-    js => [qw(@babel/core @babel/preset-env @babel/plugin-transform-runtime @rollup/plugin-babel rollup-plugin-terser)],
+    js => [qw(@babel/core@^7.0.0 @babel/preset-env@^7.0.0 @babel/plugin-transform-runtime@^7.0.0 @rollup/plugin-babel @rollup/plugin-terser)],
     sass   => [qw(cssnano @csstools/postcss-sass postcss-preset-env rollup-plugin-postcss sass)],
     svelte => [qw(rollup-plugin-svelte)],
   };
@@ -143,7 +143,7 @@ These dependencies are predefined:
   core   | rollup @rollup/plugin-commonjs @rollup/plugin-node-resolve
   css    | cssnano postcss-preset-env rollup-plugin-postcss
   eslint | @rollup-plugin-eslint
-  js     | @babel/core @babel/preset-env @rollup/plugin-babel rollup-plugin-terser
+  js     | @babel/core@^7.0.0 @babel/preset-env@^7.0.0 @rollup/plugin-babel @rollup/plugin-terser
   sass   | cssnano @csstools/postcss-sass postcss-preset-env rollup-plugin-postcss sass
   svelte | rollup-plugin-svelte
 
@@ -242,7 +242,7 @@ module.exports = function(config, {isDev}) {
 }
 @@ include/js.js
 const {babel} = require('@rollup/plugin-babel');
-const {terser} = require('rollup-plugin-terser');
+const {terser} = require('@rollup/plugin-terser');
 
 module.exports = function(config, {isDev}) {
   config.plugins.push(babel({

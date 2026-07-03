@@ -31,7 +31,7 @@ has dependencies => sub {
     core   => [qw(webpack webpack-cli)],
     css    => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin)],
     eslint => [qw(eslint eslint-webpack-plugin)],
-    js     => [qw(@babel/core @babel/preset-env @babel/plugin-transform-runtime babel-loader terser-webpack-plugin)],
+    js     => [qw(@babel/core@^7.0.0 @babel/preset-env@^7.0.0 @babel/plugin-transform-runtime@^7.0.0 babel-loader terser-webpack-plugin)],
     sass   => [qw(css-loader mini-css-extract-plugin css-minimizer-webpack-plugin sass sass-loader)],
     vue    => [qw(vue vue-loader vue-template-compiler)],
   };
@@ -269,7 +269,7 @@ These dependencies are predefined:
   core   | webpack webpack-cli
   css    | css-loader mini-css-extract-plugin css-minimizer-webpack-plugin
   eslint | eslint-webpack-plugin
-  js     | @babel/core @babel/preset-env @babel/plugin-transform-runtime babel-loader terser-webpack-plugin
+  js     | @babel/core@^7.0.0 @babel/preset-env@^7.0.0 @babel/plugin-transform-runtime@^7.0.0 babel-loader terser-webpack-plugin
   sass   | css-loader mini-css-extract-plugin css-minimizer-webpack-plugin sass sass-loader
   vue    | vue vue-loader vue-template-compiler
 

@@ -14,12 +14,12 @@ jobs:
         perl: ["5.32", "5.26", "5.16"]
     runs-on: "${{matrix.os}}"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5  # v2
       - name: Use Node.js ${{matrix.node-version}}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e  # v1
         with:
           node-version: "${{matrix.nodejs}}"
-      - uses: shogo82148/actions-setup-perl@v1
+      - uses: shogo82148/actions-setup-perl@a198315ec4e9244f206879ea7b63078003aec8a6  # v1
         with:
           perl-version: "${{matrix.perl}}"
       - run: perl -V
